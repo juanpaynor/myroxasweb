@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-background",
+      "description": "A sunny day view of a modern city hall",
+      "imageUrl": "https://images.unsplash.com/photo-1720499502693-63b1fd835041?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjaXR5JTIwaGFsbCUyMHN1bm55fGVufDB8fHx8MTc2MzA2MjM3OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city hall sunny"
+    }
+  ]
 }
