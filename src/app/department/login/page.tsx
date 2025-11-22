@@ -69,7 +69,7 @@ export default function DepartmentLoginPage() {
   }
 
   return (
-    <main className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+    <main className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:bg-gradient-to-br dark:from-blue-50 dark:via-white dark:to-indigo-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo Section */}
         <motion.div
@@ -89,9 +89,9 @@ export default function DepartmentLoginPage() {
           </div>
           <div className="flex items-center justify-center gap-2 mb-2">
             <Building2 className="w-6 h-6 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">Department Portal</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-900">Department Portal</h1>
           </div>
-          <p className="text-gray-600">Sign in to manage assigned reports</p>
+          <p className="text-gray-600 dark:text-gray-600">Sign in to manage assigned reports</p>
         </motion.div>
 
         {/* Login Form */}
@@ -99,7 +99,7 @@ export default function DepartmentLoginPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100"
+          className="bg-white dark:bg-white rounded-3xl p-8 shadow-xl border border-gray-100 dark:border-gray-100"
         >
           <form onSubmit={handleLogin} className="space-y-6">
             {/* Error Message */}
@@ -116,7 +116,7 @@ export default function DepartmentLoginPage() {
 
             {/* Email Input */}
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 dark:text-gray-700 mb-2">
                 Email Address
               </label>
               <div className="relative">
@@ -135,7 +135,7 @@ export default function DepartmentLoginPage() {
 
             {/* Password Input */}
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 dark:text-gray-700 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -178,7 +178,7 @@ export default function DepartmentLoginPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-6 text-center text-sm text-gray-600"
+          className="mt-6 text-center text-sm text-gray-600 dark:text-gray-600"
         >
           <p>Need access? Contact your system administrator.</p>
         </motion.div>

@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen w-full bg-gradient-to-br from-yellow-50 via-white to-orange-50 flex items-center justify-center p-4">
+    <main className="min-h-screen w-full bg-gradient-to-br from-yellow-50 via-white to-orange-50 dark:bg-gradient-to-br dark:from-yellow-50 dark:via-white dark:to-orange-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <motion.div
@@ -59,13 +59,13 @@ export default function AdminLoginPage() {
               className="w-full h-auto"
             />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Admin Login</h1>
-          <p className="text-gray-600">Sign in to access the admin dashboard</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-900 mb-2">Admin Login</h1>
+          <p className="text-gray-600 dark:text-gray-600">Sign in to access the admin dashboard</p>
         </motion.div>
 
         {/* Login Form */}
         <motion.div
-          className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100"
+          className="bg-white dark:bg-white rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-100"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
@@ -73,7 +73,7 @@ export default function AdminLoginPage() {
           <form onSubmit={handleLogin} className="space-y-6">
             {/* Email Input */}
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 dark:text-gray-700 mb-2">
                 Email Address
               </label>
               <div className="relative">
@@ -93,7 +93,7 @@ export default function AdminLoginPage() {
 
             {/* Password Input */}
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 dark:text-gray-700 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -164,7 +164,7 @@ export default function AdminLoginPage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.4 }}
         >
-          <Link href="/login" className="text-gray-600 hover:text-gray-900 transition-colors">
+          <Link href="/login" className="text-gray-600 dark:text-gray-600 hover:text-gray-900 dark:hover:text-gray-900 transition-colors">
             ← Back to login options
           </Link>
         </motion.div>
