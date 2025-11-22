@@ -1,9 +1,84 @@
 'use server';
 
+import { createClient } from '@supabase/supabase-js';
+
 export interface RecommendationState {
   recommendations: string[] | null;
   error: string | null;
   timestamp: number;
+}
+
+// Server action to create user with admin privileges (doesn't affect current session)
+export async function createUserServerAction(
+  email: string,
+  password: string,
+  fullName: string,
+  role: string
+) {
+  // Access environment variables at runtime
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+  // Debug logging
+  console.log('Environment check:', {
+    hasUrl: !!supabaseUrl,
+    hasServiceKey: !!supabaseServiceKey,
+    urlLength: supabaseUrl?.length,
+    keyLength: supabaseServiceKey?.length
+  });
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return { error: `Server configuration error - missing ${!supabaseUrl ? 'URL' : 'service key'}` };
+  }
+
+  // Create admin client with service role key
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+
+  try {
+    // Create auth user using admin API (won't affect current session)
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true, // Auto-confirm email
+      user_metadata: {
+        full_name: fullName,
+        role: role
+      }
+    });
+
+    if (authError) {
+      return { error: authError.message };
+    }
+
+    if (!authData.user) {
+      return { error: 'Failed to create user' };
+    }
+
+    // Create user profile
+    const { error: profileError } = await supabaseAdmin
+      .from('user_profiles')
+      .insert({
+        id: authData.user.id,
+        email,
+        role,
+        full_name: fullName,
+      });
+
+    if (profileError) {
+      // Rollback: delete the auth user if profile creation fails
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      return { error: profileError.message };
+    }
+
+    return { success: true, userId: authData.user.id };
+  } catch (err: any) {
+    return { error: err.message || 'Failed to create user' };
+  }
 }
 
 // Mock service recommendations based on keywords

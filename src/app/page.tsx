@@ -1,3 +1,5 @@
+'use client';
+
 import { Hero } from '@/components/hero';
 import { AppShowcase } from '@/components/app-showcase';
 import { Features } from '@/components/features';

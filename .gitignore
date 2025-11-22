@@ -38,3 +38,10 @@ yarn-error.log*
 next-env.d.ts
 
 .env*
+
+# documentation (except README)
+*.md
+!README.md
+
+# sql files
+*.sql

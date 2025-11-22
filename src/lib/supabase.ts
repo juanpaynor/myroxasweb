@@ -1,9 +1,32 @@
-import { createClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://tkgjbddrdrzljfjsgtyl.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrZ2piZGRyZHJ6bGpmanNndHlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0NTE3OTUsImV4cCI6MjA3OTAyNzc5NX0.eo46eubeYAR_4LR6zUU-7kk4AZOPZSd9DHaFoNEGgUE'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_* env vars. See .env.local.example for required values.')
+}
+
+let client: SupabaseClient | undefined
+
+async function getSupabaseClient() {
+  // Wait until we're in the browser
+  if (typeof window === 'undefined') {
+    // Return a promise that will never resolve on the server
+    // This prevents SSR errors while still working in the browser
+    return new Promise<SupabaseClient>(() => {})
+  }
+  
+  if (!client) {
+    const { createBrowserClient } = await import('@supabase/ssr')
+    client = createBrowserClient(supabaseUrl, supabaseAnonKey)
+  }
+  
+  return client
+}
+
+// Export a promise that resolves to the client
+export const supabase = getSupabaseClient()
 
 // TypeScript types for database tables
 export type Report = {
