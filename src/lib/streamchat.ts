@@ -1,17 +1,22 @@
 import { StreamChat } from 'stream-chat';
 
-const apiKey = process.env.STREAM_CHAT_API_KEY!;
-const apiSecret = process.env.STREAM_CHAT_SECRET!;
-
-if (!apiKey || !apiSecret) {
-  throw new Error('Stream Chat credentials are missing');
-}
-
-// Server-side Stream Chat client
+// Server-side Stream Chat client (lazy initialization)
 let serverClient: StreamChat | null = null;
+
+function getCredentials() {
+  const apiKey = process.env.STREAM_CHAT_API_KEY;
+  const apiSecret = process.env.STREAM_CHAT_SECRET;
+  
+  if (!apiKey || !apiSecret) {
+    throw new Error('Stream Chat credentials are missing. Make sure STREAM_CHAT_API_KEY and STREAM_CHAT_SECRET are set.');
+  }
+  
+  return { apiKey, apiSecret };
+}
 
 export function getStreamServerClient() {
   if (!serverClient) {
+    const { apiKey, apiSecret } = getCredentials();
     serverClient = StreamChat.getInstance(apiKey, apiSecret);
   }
   return serverClient;
