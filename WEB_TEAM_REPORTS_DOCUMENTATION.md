@@ -19,8 +19,8 @@ The Reports feature allows citizens to submit issues/complaints through the mobi
 ## Supabase Connection Details
 
 ### Project Information
-- **Supabase URL**: `https://tkgjbddrdrzljfjsgtyl.supabase.co`
-- **Anon Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrZ2piZGRyZHJ6bGpmanNndHlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0NTE3OTUsImV4cCI6MjA3OTAyNzc5NX0.eo46eubeYAR_4LR6zUU-7kk4AZOPZSd9DHaFoNEGgUE`
+- **Supabase URL**: `https://<YOUR_PROJECT>.supabase.co`
+- **Anon Key**: `<YOUR_SUPABASE_ANON_KEY>`
 
 ### Installation (JavaScript/TypeScript)
 ```bash
@@ -31,8 +31,8 @@ npm install @supabase/supabase-js
 ```javascript
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://tkgjbddrdrzljfjsgtyl.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrZ2piZGRyZHJ6bGpmanNndHlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0NTE3OTUsImV4cCI6MjA3OTAyNzc5NX0.eo46eubeYAR_4LR6zUU-7kk4AZOPZSd9DHaFoNEGgUE'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 ```
