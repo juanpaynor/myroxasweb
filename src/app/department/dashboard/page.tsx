@@ -225,50 +225,50 @@ export default function DepartmentDashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
       <nav className="bg-white shadow-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+          <div className="flex justify-between items-center h-12">
             {/* Logo */}
-            <div className="flex items-center">
-              <Building2 className="w-6 h-6 text-blue-600 mr-2" />
-              <h1 className="text-base sm:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                Department Portal
+            <div className="flex items-center flex-shrink-0">
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 mr-2" />
+              <h1 className="text-base sm:text-xl md:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                Department <span className="hidden sm:inline">Portal</span>
               </h1>
             </div>
 
             {/* Nav Links */}
-            <div className="flex items-center space-x-1">
-              <Link href="/department/dashboard" title="Dashboard">
-                <div className="flex items-center px-3 py-2 rounded-lg bg-blue-50 text-blue-700 transition-colors">
-                  <Building2 className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden lg:inline">Dashboard</span>
+            <div className="flex items-center space-x-0.5 overflow-x-auto">
+              <Link href="/department/dashboard">
+                <div className="flex items-center px-2 py-1.5 rounded-lg bg-blue-50 text-blue-700 font-medium whitespace-nowrap">
+                  <Building2 className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Dashboard</span>
                 </div>
               </Link>
-              <Link href="/department/reports" title="Reports">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-                  <FileText className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden lg:inline">Reports</span>
+              <Link href="/department/reports">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors whitespace-nowrap">
+                  <FileText className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Reports</span>
                 </div>
               </Link>
-              <Link href="/department/queue" title="Queue">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-                  <Clock className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden lg:inline">Queue</span>
+              <Link href="/department/queue">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors whitespace-nowrap">
+                  <Clock className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Queue</span>
                 </div>
               </Link>
             </div>
 
             {/* Right Side Icons */}
-            <div className="flex items-center space-x-2">
-              <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors" title="Notifications">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <button className="hidden sm:flex relative p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               
               {/* Settings Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                   title="Settings"
                 >
                   <Settings className="w-5 h-5" />

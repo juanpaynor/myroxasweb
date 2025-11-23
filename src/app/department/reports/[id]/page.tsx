@@ -281,7 +281,7 @@ export default function DepartmentReportDetail() {
       {/* Navigation Bar */}
       <nav className="bg-white shadow-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
+          <div className="flex justify-between items-center h-14">
             <div className="flex items-center flex-shrink-0">
               <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 mr-2" />
               <h1 className="text-base sm:text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">

@@ -25,33 +25,28 @@ export function getStreamServerClient() {
 /**
  * Generate a Stream Chat token for a user
  * @param userId - User's UUID from Supabase
- * @param role - User's role in the chat system (user, agent, admin)
  */
-export function generateStreamToken(userId: string, role: 'user' | 'agent' | 'admin' = 'user') {
+export function generateStreamToken(userId: string) {
   const client = getStreamServerClient();
-  return client.createToken(userId);
+  // Add expiration time: 1 hour from now
+  const exp = Math.floor(Date.now() / 1000) + 60 * 60;
+  return client.createToken(userId, exp);
 }
 
 /**
  * Create or get a Stream Chat user
  * @param userId - User's UUID from Supabase
  * @param name - User's display name
- * @param role - Stream Chat role (user, agent, admin)
  */
-export async function upsertStreamUser(
-  userId: string, 
-  name: string, 
-  role: 'user' | 'agent' | 'admin' = 'user'
-) {
+export async function upsertStreamUser(userId: string, name: string) {
   const client = getStreamServerClient();
   
   await client.upsertUser({
     id: userId,
     name: name,
-    role: role,
   });
   
-  return generateStreamToken(userId, role);
+  return generateStreamToken(userId);
 }
 
 /**
@@ -68,12 +63,16 @@ export async function createSupportChannel(
   const client = getStreamServerClient();
   
   const channelId = `support-${conversationId}`;
-  const channel = client.channel('messaging', channelId, {
+  
+  // Create channel server-side using 'team' type (has open permissions)
+  const channel = client.channel('team', channelId, {
     created_by_id: userId,
     members: agentId ? [userId, agentId] : [userId],
   });
   
-  await channel.create();
+  // Use getOrCreate to ensure channel exists and is properly initialized
+  // This also ensures members can immediately send messages
+  await channel.watch();
   
   return channel;
 }
@@ -83,16 +82,30 @@ export async function createSupportChannel(
  * @param conversationId - UUID of the conversation
  * @param agentId - CSM agent's UUID
  */
-export async function addAgentToChannel(conversationId: string, agentId: string) {
+export async function addAgentToChannel(
+  conversationId: string,
+  agentId: string,
+  createdById?: string
+) {
   const client = getStreamServerClient();
   const channelId = `support-${conversationId}`;
-  const channel = client.channel('messaging', channelId);
   
+  // Provide created_by_id so Stream accepts the server-side query
+  const channel = client.channel(
+    'team',
+    channelId,
+    createdById ? { created_by_id: createdById } : {}
+  );
+
+  // Ensure channel exists and load state
+  await channel.query({ watch: false, state: true, presence: false });
+
+  // Add the agent as a member
   await channel.addMembers([agentId]);
-  
-  // Send system message that agent joined
+
+  // Notify participants that agent joined
   await channel.sendMessage({
-    text: 'A support agent has joined the conversation',
+    text: '👋 A support agent has joined the conversation.',
     user_id: 'system',
   });
 }
@@ -105,7 +118,7 @@ export async function addAgentToChannel(conversationId: string, agentId: string)
 export async function sendSystemMessage(conversationId: string, message: string) {
   const client = getStreamServerClient();
   const channelId = `support-${conversationId}`;
-  const channel = client.channel('messaging', channelId);
+  const channel = client.channel('team', channelId);
   
   await channel.sendMessage({
     text: message,

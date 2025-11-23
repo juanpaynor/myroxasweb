@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create/update CSM user in Stream Chat and generate token
-    const streamToken = await upsertStreamUser(user.id, profile.full_name, 'agent');
+    const streamToken = await upsertStreamUser(user.id, profile.full_name);
 
     return NextResponse.json({
       token: streamToken,

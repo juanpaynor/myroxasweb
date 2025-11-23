@@ -17,28 +17,54 @@ export async function GET(
       return NextResponse.json({ error: 'Missing authorization header' }, { status: 401 });
     }
 
-    // Create Supabase client
     const token = authHeader.replace('Bearer ', '');
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+
+    // Create Supabase client with service role for querying
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify user authentication separately
+    const userSupabase = createClient(supabaseUrl, supabaseServiceKey, {
       global: { headers: { Authorization: authHeader } }
     });
-
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    const { data: { user }, error: authError } = await userSupabase.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get conversation
+    // Get conversation using service role (bypass RLS)
     const { data: conversation, error: convError } = await supabase
       .from('support_conversations')
-      .select('*, user_profiles!user_id(full_name)')
+      .select('*')
       .eq('id', conversationId)
       .single();
 
-    if (convError || !conversation) {
+    if (convError) {
+      console.error('❌ Error fetching conversation:', {
+        conversationId,
+        error: convError,
+        message: convError.message,
+        code: convError.code,
+        details: convError.details
+      });
+      return NextResponse.json({ 
+        error: 'Conversation not found', 
+        conversationId,
+        errorDetails: convError.message 
+      }, { status: 404 });
+    }
+    
+    if (!conversation) {
+      console.error('❌ Conversation is null:', { conversationId });
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
+
+    console.log('✅ Conversation found:', { 
+      conversationId, 
+      status: conversation.status,
+      userId: conversation.user_id,
+      requestingUserId: user.id
+    });
 
     // Verify user owns this conversation
     if (conversation.user_id !== user.id) {

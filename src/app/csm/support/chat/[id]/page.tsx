@@ -9,7 +9,9 @@ import {
   User,
   FileText,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  X,
+  Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
@@ -53,13 +55,18 @@ export default function CSMChatPage() {
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [resolutionNote, setResolutionNote] = useState('');
   const [showUserDetails, setShowUserDetails] = useState(true);
+  const isInitializing = useRef(false);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    initChat();
+    if (!hasInitialized.current && !isInitializing.current) {
+      isInitializing.current = true;
+      initChat();
+    }
 
     return () => {
       if (chatClient) {
-        chatClient.disconnectUser();
+        chatClient.disconnectUser().catch(console.error);
       }
     };
   }, [conversationId]);
@@ -76,21 +83,35 @@ export default function CSMChatPage() {
       // Fetch conversation details
       const { data: convData, error: convError } = await client
         .from('support_conversations')
-        .select(`
-          *,
-          user:user_profiles!inner(full_name, email)
-        `)
+        .select('*')
         .eq('id', conversationId)
         .single();
 
       if (convError) throw convError;
+      
+      // Fetch user profile separately
+      const { data: userData, error: userError } = await client
+        .from('user_profiles')
+        .select('full_name, email')
+        .eq('id', convData.user_id)
+        .single();
+
+      if (userError) {
+        console.warn('Could not fetch user profile:', userError);
+      }
+
+      const conversationWithUser = {
+        ...convData,
+        user: userData || { full_name: 'Unknown User', email: 'N/A' }
+      };
+
       if (convData.assigned_agent_id !== session.user.id) {
         alert('This conversation is not assigned to you');
         router.push('/csm/support');
         return;
       }
 
-      setConversation(convData as any);
+      setConversation(conversationWithUser as any);
 
       // Initialize Stream Chat
       const streamClient = StreamChat.getInstance(process.env.NEXT_PUBLIC_STREAM_CHAT_API_KEY!);
@@ -107,17 +128,25 @@ export default function CSMChatPage() {
       if (!tokenResponse.ok) throw new Error('Failed to get Stream token');
       const { token } = await tokenResponse.json();
 
+      // Get CSM profile for display name
+      const { data: csmProfile } = await client
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', session.user.id)
+        .single();
+
+      const csmName = csmProfile?.full_name || 'Support Agent';
+
       await streamClient.connectUser(
         {
           id: session.user.id,
-          name: 'Support Agent',
-          role: 'agent',
+          name: csmName,
         },
         token
       );
 
       const channelInstance = streamClient.channel(
-        'messaging',
+        'team',
         `support-${conversationId}`,
         {}
       );
@@ -127,8 +156,11 @@ export default function CSMChatPage() {
       setChatClient(streamClient);
       setChannel(channelInstance);
       setLoading(false);
+      hasInitialized.current = true;
+      isInitializing.current = false;
     } catch (error) {
       console.error('Error initializing chat:', error);
+      isInitializing.current = false;
       alert('Failed to load chat');
       router.push('/csm/support');
     }
@@ -142,26 +174,22 @@ export default function CSMChatPage() {
 
     try {
       const client = await supabase;
-      const { data: { session } } = await client.auth.getSession();
-      if (!session) return;
 
-      const response = await fetch(`/api/support/conversations/${conversationId}/resolve`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          resolution_notes: resolutionNote,
-        }),
-      });
+      // Update conversation status to resolved
+      const { error: updateError } = await client
+        .from('support_conversations')
+        .update({
+          status: 'resolved',
+          resolved_at: new Date().toISOString(),
+        })
+        .eq('id', conversationId);
 
-      if (!response.ok) throw new Error('Failed to resolve conversation');
+      if (updateError) throw updateError;
 
       // Send system message to chat
       if (channel) {
         await channel.sendMessage({
-          text: `Conversation resolved by agent. Notes: ${resolutionNote}`,
+          text: `✅ Conversation resolved. ${resolutionNote ? `Notes: ${resolutionNote}` : ''}`,
           user_id: 'system',
         });
       }
@@ -170,6 +198,82 @@ export default function CSMChatPage() {
     } catch (error) {
       console.error('Error resolving conversation:', error);
       alert('Failed to resolve conversation');
+    }
+  }
+
+  async function handleCloseChat() {
+    if (!confirm('Close this chat and return it to waiting status?')) {
+      return;
+    }
+
+    try {
+      const client = await supabase;
+
+      // Update conversation status back to 'waiting_agent' and remove agent assignment
+      const { error: updateError } = await client
+        .from('support_conversations')
+        .update({
+          status: 'waiting_agent',
+          assigned_agent_id: null,
+          assigned_at: null,
+        })
+        .eq('id', conversationId);
+
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw updateError;
+      }
+
+      // Send system message
+      if (channel) {
+        try {
+          await channel.sendMessage({
+            text: '💬 Agent has left the conversation. Another agent can respond when available.',
+            user_id: 'system',
+          });
+        } catch (msgError) {
+          console.error('Message error:', msgError);
+        }
+      }
+
+      router.push('/csm/support');
+    } catch (error) {
+      console.error('Error closing chat:', error);
+      alert('Failed to close chat: ' + (error as any).message);
+    }
+  }
+
+  async function handleDeleteConversation() {
+    if (!confirm('⚠️ DELETE PERMANENTLY?\n\nThis will delete the entire conversation and all messages. This action CANNOT be undone.\n\nAre you absolutely sure?')) {
+      return;
+    }
+
+    try {
+      const client = await supabase;
+      const { data: { session } } = await client.auth.getSession();
+      
+      if (!session) {
+        alert('You must be logged in to delete conversations');
+        return;
+      }
+
+      const response = await fetch(`/api/support/conversations/${conversationId}/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete conversation');
+      }
+
+      // Navigate back to support queue
+      router.push('/csm/support');
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete conversation');
     }
   }
 
@@ -223,6 +327,21 @@ export default function CSMChatPage() {
               className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
             >
               {showUserDetails ? 'Hide' : 'Show'} Details
+            </button>
+            <button
+              onClick={handleDeleteConversation}
+              className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center"
+              title="Delete conversation permanently"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Delete
+            </button>
+            <button
+              onClick={handleCloseChat}
+              className="px-3 py-2 text-sm border border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center"
+            >
+              <X className="w-4 h-4 mr-1" />
+              Close Chat
             </button>
             <button
               onClick={() => setShowResolveModal(true)}
@@ -280,13 +399,58 @@ export default function CSMChatPage() {
               {/* AI Summary */}
               {conversation.ai_conversation_summary && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
                     <AlertCircle className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
-                    AI Summary
+                    AI Conversation History
                   </h4>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    {conversation.ai_conversation_summary}
-                  </p>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {(() => {
+                      try {
+                        const history = typeof conversation.ai_conversation_summary === 'string' 
+                          ? JSON.parse(conversation.ai_conversation_summary)
+                          : conversation.ai_conversation_summary;
+                        
+                        return Array.isArray(history) ? history.map((msg: any, idx: number) => (
+                          <div 
+                            key={idx} 
+                            className={`p-2 rounded text-sm ${
+                              msg.role === 'user' 
+                                ? 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700' 
+                                : 'bg-blue-100 dark:bg-blue-900/30'
+                            }`}
+                          >
+                            <div className="flex items-center mb-1">
+                              <span className={`font-semibold text-xs uppercase ${
+                                msg.role === 'user' 
+                                  ? 'text-gray-600 dark:text-gray-400' 
+                                  : 'text-blue-600 dark:text-blue-400'
+                              }`}>
+                                {msg.role === 'user' ? '👤 User' : '🤖 AI'}
+                              </span>
+                              {msg.timestamp && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                  {new Date(msg.timestamp).toLocaleTimeString()}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                              {msg.message}
+                            </p>
+                          </div>
+                        )) : (
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            {JSON.stringify(history)}
+                          </p>
+                        );
+                      } catch (e) {
+                        return (
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            {conversation.ai_conversation_summary}
+                          </p>
+                        );
+                      }
+                    })()}
+                  </div>
                 </div>
               )}
 

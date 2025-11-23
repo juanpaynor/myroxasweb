@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const emailAddress = profile?.email || user_email;
 
     // Create Stream Chat user and get token
-    const streamToken = await upsertStreamUser(user_id, displayName, 'user');
+    const streamToken = await upsertStreamUser(user_id, displayName);
 
     // Create conversation in database
     const conversationId = crypto.randomUUID();
@@ -96,6 +96,16 @@ export async function POST(request: NextRequest) {
     // Create Stream Chat channel
     const channel = await createSupportChannel(conversationId, user_id);
     
+    // Send welcome message
+    try {
+      await channel.sendMessage({
+        text: `✅ Your request has been received. An agent will respond as soon as possible.\n\nFeel free to describe your concern, and we'll get back to you shortly.`,
+        user_id: 'system',
+      });
+    } catch (error) {
+      console.error('Error sending welcome message:', error);
+    }
+
     // Send chat history to Stream Chat channel as system messages
     if (chat_summary && Array.isArray(chat_summary)) {
       for (const msg of chat_summary) {
@@ -111,43 +121,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Add to agent queue
-    const { error: queueError } = await supabase
-      .from('agent_queue')
-      .insert({
-        conversation_id: conversationId,
-        priority: priority,
-      });
-
-    if (queueError) {
-      console.error('Error adding to queue:', queueError);
-      return NextResponse.json(
-        { error: 'Failed to add to queue' }, 
-        { status: 500 }
-      );
-    }
-
-    // Get queue position
-    const { data: queueData, error: queuePosError } = await supabase
-      .from('agent_queue')
-      .select('id')
-      .order('priority', { ascending: false })
-      .order('waiting_since', { ascending: true });
-
-    const queuePosition = queuePosError ? 0 : 
-      queueData?.findIndex(item => item.id === conversationId) + 1 || 1;
-
-    // Estimate wait time (5 minutes per person in queue)
-    const estimatedWaitMinutes = Math.max(queuePosition * 5, 2);
-
-    // Return response matching mobile team's expected format
+    // Return response - chat is immediately available, no queue needed
     return NextResponse.json({
       success: true,
       conversation_id: conversationId,
-      queue_position: queuePosition,
-      estimated_wait_minutes: estimatedWaitMinutes,
       stream_chat_channel_id: streamChannelId,
       stream_user_token: streamToken,
+      message: 'Chat created successfully. You can start messaging immediately.',
     });
 
   } catch (error) {

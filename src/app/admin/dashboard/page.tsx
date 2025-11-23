@@ -302,82 +302,82 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Navigation Bar */}
       <nav className="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14">
-            <div className="flex items-center">
-              <h1 className="text-base sm:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
-                MyRoxas Admin
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+          <div className="flex justify-between items-center h-12">
+            <div className="flex items-center flex-shrink-0">
+              <h1 className="text-base sm:text-xl md:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
+                MyRoxas <span className="hidden sm:inline">Admin</span>
               </h1>
             </div>
 
-            <div className="flex items-center space-x-1">
-              <Link href="/admin/dashboard" title="Dashboard">
-                <div className="flex items-center px-3 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 transition-colors group">
-                  <LayoutDashboard className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden lg:inline">Dashboard</span>
+            <div className="flex items-center space-x-0.5 overflow-x-auto">
+              <Link href="/admin/dashboard">
+                <div className="flex items-center px-2 py-1.5 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 font-medium whitespace-nowrap">
+                  <LayoutDashboard className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Dashboard</span>
                 </div>
               </Link>
-              <Link href="/admin/reports" title="Reports">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
-                  <FileText className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden lg:inline">Reports</span>
+              <Link href="/admin/reports">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors whitespace-nowrap">
+                  <FileText className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Reports</span>
                 </div>
               </Link>
-              <Link href="/admin/users" title="Users">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
-                  <Users className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden lg:inline">Users</span>
+              <Link href="/admin/users">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors whitespace-nowrap">
+                  <Users className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Users</span>
                 </div>
               </Link>
-              <Link href="/admin/categories" title="Categories">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
-                  <FolderKanban className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden xl:inline">Categories</span>
+              <Link href="/admin/categories">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors whitespace-nowrap">
+                  <FolderKanban className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Categories</span>
                 </div>
               </Link>
-              <Link href="/admin/departments" title="Departments">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
-                  <Building2 className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden xl:inline">Departments</span>
+              <Link href="/admin/departments">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors whitespace-nowrap">
+                  <Building2 className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Departments</span>
                 </div>
               </Link>
-              <Link href="/admin/department-users" title="Department Staff">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
-                  <Shield className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden xl:inline">Staff</span>
+              <Link href="/admin/department-users">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors whitespace-nowrap">
+                  <Shield className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Staff</span>
                 </div>
               </Link>
-              <Link href="/admin/announcements" title="Announcements">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
-                  <Megaphone className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden xl:inline">Announcements</span>
+              <Link href="/admin/announcements">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors whitespace-nowrap">
+                  <Megaphone className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">News</span>
                 </div>
               </Link>
-              <Link href="/admin/support-faqs" title="Support FAQs">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
-                  <MessageSquare className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden xl:inline">FAQs</span>
+              <Link href="/admin/support-faqs">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors whitespace-nowrap">
+                  <MessageSquare className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">FAQs</span>
                 </div>
               </Link>
-              <Link href="/admin/settings" title="Settings">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
-                  <Settings className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden xl:inline">Settings</span>
+              <Link href="/admin/settings">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors whitespace-nowrap">
+                  <Settings className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Settings</span>
                 </div>
               </Link>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-shrink-0">
               <ThemeToggle />
-              <button className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" title="Notifications">
+              <button className="hidden sm:flex relative p-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               
               <div className="relative">
                 <button
                   onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                  className="flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 transition-colors"
+                  className="flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-0.5 transition-colors"
                   title="Account"
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">

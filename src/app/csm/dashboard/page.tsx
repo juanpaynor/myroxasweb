@@ -206,55 +206,55 @@ export default function CSMDashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
       <nav className="bg-white shadow-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+          <div className="flex justify-between items-center h-12">
             {/* Logo */}
-            <div className="flex items-center">
-              <h1 className="text-base sm:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                MyRoxas CSM
+            <div className="flex items-center flex-shrink-0">
+              <h1 className="text-base sm:text-xl md:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                MyRoxas <span className="hidden sm:inline">CSM</span>
               </h1>
             </div>
 
             {/* Nav Links */}
-            <div className="flex items-center space-x-1">
-              <Link href="/csm/dashboard" title="Dashboard">
-                <div className="flex items-center px-3 py-2 rounded-lg bg-blue-50 text-blue-700 transition-colors">
-                  <LayoutDashboard className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden lg:inline">Dashboard</span>
+            <div className="flex items-center space-x-0.5 overflow-x-auto">
+              <Link href="/csm/dashboard">
+                <div className="flex items-center px-2 py-1.5 rounded-lg bg-blue-50 text-blue-700 font-medium whitespace-nowrap">
+                  <LayoutDashboard className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Dashboard</span>
                 </div>
               </Link>
-              <Link href="/csm/reports" title="Reports">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-                  <FileText className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden lg:inline">Reports</span>
+              <Link href="/csm/reports">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors whitespace-nowrap">
+                  <FileText className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Reports</span>
                 </div>
               </Link>
-              <Link href="/csm/support" title="Support Chat">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-                  <MessageSquare className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden lg:inline">Support</span>
+              <Link href="/csm/support">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors whitespace-nowrap">
+                  <MessageSquare className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Support</span>
                 </div>
               </Link>
-              <Link href="/csm/settings" title="Settings">
-                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-                  <Settings className="w-5 h-5" />
-                  <span className="ml-2 text-sm font-medium hidden lg:inline">Settings</span>
+              <Link href="/csm/settings">
+                <div className="flex items-center px-2 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors whitespace-nowrap">
+                  <Settings className="w-4 h-4 mr-1.5" />
+                  <span className="hidden md:inline text-sm">Settings</span>
                 </div>
               </Link>
             </div>
 
             {/* Right Side Icons */}
-            <div className="flex items-center space-x-2">
-              <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors" title="Notifications">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <button className="hidden sm:flex relative p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               
               {/* Avatar Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                  className="flex items-center hover:bg-gray-100 rounded-lg p-1 transition-colors"
+                  className="flex items-center hover:bg-gray-100 rounded-lg p-0.5 transition-colors"
                   title="Account"
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm">

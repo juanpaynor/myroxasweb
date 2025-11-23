@@ -19,7 +19,10 @@ import {
   Trash2,
   Check,
   X,
-  Filter
+  Filter,
+  Sparkles,
+  Loader2,
+  Globe
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -68,6 +71,14 @@ export default function AdminSupportFAQs() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFaqs, setSelectedFaqs] = useState<string[]>([]);
+  
+  // AI Generation state
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiMode, setAiMode] = useState<'url' | 'prompt'>('prompt');
+  const [aiInput, setAiInput] = useState('');
+  const [aiTone, setAiTone] = useState('professional');
+  const [generatedFaqs, setGeneratedFaqs] = useState<Array<{question: string; answer: string}>>([]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -214,6 +225,75 @@ export default function AdminSupportFAQs() {
         setMessage(editingFaq ? 'FAQ updated successfully!' : 'FAQ created successfully!');
         setShowModal(false);
         await fetchFAQs();
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        const error = await response.json();
+        setMessage(error.error || 'Failed to save FAQ');
+      }
+    } catch (error) {
+      console.error('Error saving FAQ:', error);
+      setMessage('Failed to save FAQ');
+    }
+  }
+
+  async function handleGenerateWithAI() {
+    if (!aiInput.trim()) {
+      setMessage(aiMode === 'url' ? 'Please enter a URL' : 'Please enter a topic or question');
+      return;
+    }
+
+    setAiGenerating(true);
+    setMessage('');
+
+    try {
+      const payload = aiMode === 'url' 
+        ? { url: aiInput.trim(), tone: aiTone }
+        : { prompt: aiInput.trim(), tone: aiTone };
+
+      const response = await fetch('/api/admin/generate-faq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setGeneratedFaqs(data.faqs);
+        setMessage(`Generated ${data.faqs.length} FAQs! Review and select which ones to save.`);
+      } else {
+        const error = await response.json();
+        setMessage(error.error || 'Failed to generate FAQs');
+      }
+    } catch (error) {
+      console.error('Error generating FAQs:', error);
+      setMessage('Failed to generate FAQs. Please try again.');
+    } finally {
+      setAiGenerating(false);
+    }
+  }
+
+  async function handleSaveGeneratedFAQ(generatedFaq: {question: string; answer: string}) {
+    try {
+      const payload = {
+        category: formData.category,
+        question: generatedFaq.question,
+        answer: generatedFaq.answer,
+        keywords: [],
+        display_order: 0,
+        is_active: true
+      };
+
+      const response = await fetch('/api/admin/support/faqs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        setMessage('FAQ saved successfully!');
+        await fetchFAQs();
+        // Remove from generated list
+        setGeneratedFaqs(prev => prev.filter(faq => faq.question !== generatedFaq.question));
         setTimeout(() => setMessage(''), 3000);
       } else {
         const error = await response.json();
@@ -513,13 +593,22 @@ export default function AdminSupportFAQs() {
               </select>
             </div>
 
-            <button
-              onClick={openAddModal}
-              className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transition-all flex items-center gap-2 whitespace-nowrap"
-            >
-              <Plus className="w-5 h-5" />
-              Add FAQ
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAIModal(true)}
+                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 whitespace-nowrap"
+              >
+                <Sparkles className="w-5 h-5" />
+                Generate with AI
+              </button>
+              <button
+                onClick={openAddModal}
+                className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transition-all flex items-center gap-2 whitespace-nowrap"
+              >
+                <Plus className="w-5 h-5" />
+                Add FAQ
+              </button>
+            </div>
           </div>
 
           {/* Bulk Actions */}
@@ -824,6 +913,191 @@ export default function AdminSupportFAQs() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* AI Generation Modal */}
+      <AnimatePresence>
+        {showAIModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => !aiGenerating && setShowAIModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-6 h-6 text-white" />
+                    <h2 className="text-2xl font-bold text-white">Generate FAQs with AI</h2>
+                  </div>
+                  <button
+                    onClick={() => !aiGenerating && setShowAIModal(false)}
+                    disabled={aiGenerating}
+                    className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors disabled:opacity-50"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* Mode Selection */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Generation Mode
+                    </label>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setAiMode('prompt')}
+                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+                          aiMode === 'prompt'
+                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <MessageSquare className="w-5 h-5" />
+                          <span className="font-medium">From Topic/Question</span>
+                        </div>
+                        <p className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                          Let AI generate FAQs about a specific topic
+                        </p>
+                      </button>
+                      <button
+                        onClick={() => setAiMode('url')}
+                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+                          aiMode === 'url'
+                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <Globe className="w-5 h-5" />
+                          <span className="font-medium">From Website URL</span>
+                        </div>
+                        <p className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                          AI reads and generates FAQs from a webpage
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Input Field */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      {aiMode === 'url' ? 'Website URL' : 'Topic or Question'}
+                    </label>
+                    <input
+                      type={aiMode === 'url' ? 'url' : 'text'}
+                      value={aiInput}
+                      onChange={(e) => setAiInput(e.target.value)}
+                      placeholder={aiMode === 'url' 
+                        ? 'https://example.com/page-with-information'
+                        : 'e.g., How to report a street issue in Roxas City'
+                      }
+                      disabled={aiGenerating}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 outline-none disabled:opacity-50"
+                    />
+                    {aiMode === 'url' && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        💡 Tip: Works best with government websites, documentation pages, or informational content
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Category Selection */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Default Category (for generated FAQs)
+                    </label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      disabled={aiGenerating}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 outline-none disabled:opacity-50"
+                    >
+                      {CATEGORIES.map(cat => (
+                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Tone Selection */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Tone
+                    </label>
+                    <select
+                      value={aiTone}
+                      onChange={(e) => setAiTone(e.target.value)}
+                      disabled={aiGenerating}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 outline-none disabled:opacity-50"
+                    >
+                      <option value="professional">Professional</option>
+                      <option value="friendly">Friendly</option>
+                      <option value="casual">Casual</option>
+                      <option value="formal">Formal</option>
+                    </select>
+                  </div>
+
+                  {/* Generate Button */}
+                  <button
+                    onClick={handleGenerateWithAI}
+                    disabled={aiGenerating || !aiInput.trim()}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {aiGenerating ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Generating FAQs...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        Generate FAQs
+                      </>
+                    )}
+                  </button>
+
+                  {/* Generated FAQs */}
+                  {generatedFaqs.length > 0 && (
+                    <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        Generated FAQs ({generatedFaqs.length})
+                      </h3>
+                      {generatedFaqs.map((faq, index) => (
+                        <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Question:</p>
+                            <p className="text-gray-900 dark:text-white font-medium">{faq.question}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Answer:</p>
+                            <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{faq.answer}</p>
+                          </div>
+                          <button
+                            onClick={() => handleSaveGeneratedFAQ(faq)}
+                            className="w-full px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Check className="w-4 h-4" />
+                            Save This FAQ
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           </>

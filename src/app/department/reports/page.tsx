@@ -308,7 +308,7 @@ export default function DepartmentReports() {
       {/* Navigation Bar */}
       <nav className="bg-white shadow-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-          <div className="flex justify-between items-center h-12">
+          <div className="flex justify-between items-center h-14">
             {/* Logo */}
             <div className="flex items-center flex-shrink-0">
               <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 mr-2" />
