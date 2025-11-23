@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
 import QuillEditor from '@/components/QuillEditor';
 

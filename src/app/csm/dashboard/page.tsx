@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getIconEmoji } from '@/lib/icons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type ReportWithCategory = {
   id: string
@@ -206,46 +207,46 @@ export default function CSMDashboard() {
       {/* Navigation Bar */}
       <nav className="bg-white shadow-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-12">
+          <div className="flex justify-between items-center h-14">
             {/* Logo */}
             <div className="flex items-center">
-              <h1 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+              <h1 className="text-base sm:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
                 MyRoxas CSM
               </h1>
             </div>
 
             {/* Nav Links */}
-            <div className="hidden md:flex items-center space-x-0.5">
-              <Link href="/csm/dashboard">
-                <div className="flex items-center px-2 py-1.5 rounded-md bg-blue-50 text-blue-700 font-medium text-sm">
-                  <LayoutDashboard className="w-4 h-4 mr-1.5" />
-                  Dashboard
+            <div className="flex items-center space-x-1">
+              <Link href="/csm/dashboard" title="Dashboard">
+                <div className="flex items-center px-3 py-2 rounded-lg bg-blue-50 text-blue-700 transition-colors">
+                  <LayoutDashboard className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden lg:inline">Dashboard</span>
                 </div>
               </Link>
-              <Link href="/csm/reports">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-gray-600 hover:bg-gray-100 font-medium text-sm transition-colors">
-                  <FileText className="w-4 h-4 mr-1.5" />
-                  Reports
+              <Link href="/csm/reports" title="Reports">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                  <FileText className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden lg:inline">Reports</span>
                 </div>
               </Link>
-              <Link href="/csm/support">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-gray-600 hover:bg-gray-100 font-medium text-sm transition-colors">
-                  <MessageSquare className="w-4 h-4 mr-1.5" />
-                  Support Chat
+              <Link href="/csm/support" title="Support Chat">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                  <MessageSquare className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden lg:inline">Support</span>
                 </div>
               </Link>
-              <Link href="/csm/settings">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-gray-600 hover:bg-gray-100 font-medium text-sm transition-colors">
-                  <Settings className="w-4 h-4 mr-1.5" />
-                  Settings
+              <Link href="/csm/settings" title="Settings">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                  <Settings className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden lg:inline">Settings</span>
                 </div>
               </Link>
             </div>
 
             {/* Right Side Icons */}
-            <div className="flex items-center space-x-4">
-              <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
-                <Bell className="w-6 h-6" />
+            <div className="flex items-center space-x-2">
+              <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors" title="Notifications">
+                <Bell className="w-5 h-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               
@@ -253,9 +254,10 @@ export default function CSMDashboard() {
               <div className="relative">
                 <button
                   onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                  className="flex items-center space-x-2 hover:bg-gray-100 rounded-lg p-1 transition-colors"
+                  className="flex items-center hover:bg-gray-100 rounded-lg p-1 transition-colors"
+                  title="Account"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                     C
                   </div>
                 </button>
@@ -328,7 +330,19 @@ export default function CSMDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
+          {loading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-start justify-between mb-4">
+                  <Skeleton className="w-12 h-12 rounded-xl" />
+                  <Skeleton className="w-16 h-5" />
+                </div>
+                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+            ))
+          ) : (
+            stats.map((stat, index) => (
             <motion.div
               key={stat.title}
               className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border border-gray-100"
@@ -348,7 +362,8 @@ export default function CSMDashboard() {
               <h3 className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</h3>
               <p className="text-sm text-gray-600">{stat.title}</p>
             </motion.div>
-          ))}
+          ))
+          )}
         </div>
 
         {/* Recent Reports Table */}
@@ -393,11 +408,16 @@ export default function CSMDashboard() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                      Loading reports...
-                    </td>
-                  </tr>
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <tr key={index}>
+                      <td className="px-6 py-4"><Skeleton className="h-10 w-full" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-20" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-20 ml-auto" /></td>
+                    </tr>
+                  ))
                 ) : recentReports.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-gray-500">

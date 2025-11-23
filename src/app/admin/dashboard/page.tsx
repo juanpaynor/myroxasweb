@@ -27,6 +27,7 @@ import { supabase } from '@/lib/supabase';
 import { getIconEmoji } from '@/lib/icons';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type ReportWithCategory = {
   id: string
@@ -302,81 +303,82 @@ export default function AdminDashboard() {
       {/* Navigation Bar */}
       <nav className="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-12">
+          <div className="flex justify-between items-center h-14">
             <div className="flex items-center">
-              <h1 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
+              <h1 className="text-base sm:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
                 MyRoxas Admin
               </h1>
             </div>
 
-            <div className="hidden md:flex items-center space-x-0.5">
-              <Link href="/admin/dashboard">
-                <div className="flex items-center px-2 py-1.5 rounded-md bg-yellow-50 text-yellow-700 font-medium text-sm">
-                  <LayoutDashboard className="w-4 h-4 mr-1.5" />
-                  Dashboard
+            <div className="flex items-center space-x-1">
+              <Link href="/admin/dashboard" title="Dashboard">
+                <div className="flex items-center px-3 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 transition-colors group">
+                  <LayoutDashboard className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden lg:inline">Dashboard</span>
                 </div>
               </Link>
-              <Link href="/admin/reports">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-sm transition-colors">
-                  <FileText className="w-4 h-4 mr-1.5" />
-                  Reports
+              <Link href="/admin/reports" title="Reports">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
+                  <FileText className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden lg:inline">Reports</span>
                 </div>
               </Link>
-              <Link href="/admin/users">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-sm transition-colors">
-                  <Users className="w-4 h-4 mr-1.5" />
-                  Users
+              <Link href="/admin/users" title="Users">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
+                  <Users className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden lg:inline">Users</span>
                 </div>
               </Link>
-              <Link href="/admin/categories">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-sm transition-colors">
-                  <FolderKanban className="w-4 h-4 mr-1.5" />
-                  Categories
+              <Link href="/admin/categories" title="Categories">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
+                  <FolderKanban className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden xl:inline">Categories</span>
                 </div>
               </Link>
-              <Link href="/admin/departments">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-sm transition-colors">
-                  <Building2 className="w-4 h-4 mr-1.5" />
-                  Departments
+              <Link href="/admin/departments" title="Departments">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
+                  <Building2 className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden xl:inline">Departments</span>
                 </div>
               </Link>
-              <Link href="/admin/department-users">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-sm transition-colors">
-                  <Shield className="w-4 h-4 mr-1.5" />
-                  Dept. Staff
+              <Link href="/admin/department-users" title="Department Staff">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
+                  <Shield className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden xl:inline">Staff</span>
                 </div>
               </Link>
-              <Link href="/admin/announcements">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-sm transition-colors">
-                  <Megaphone className="w-4 h-4 mr-1.5" />
-                  Announcements
+              <Link href="/admin/announcements" title="Announcements">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
+                  <Megaphone className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden xl:inline">Announcements</span>
                 </div>
               </Link>
-              <Link href="/admin/support-faqs">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-sm transition-colors">
-                  <MessageSquare className="w-4 h-4 mr-1.5" />
-                  Support FAQs
+              <Link href="/admin/support-faqs" title="Support FAQs">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
+                  <MessageSquare className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden xl:inline">FAQs</span>
                 </div>
               </Link>
-              <Link href="/admin/settings">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-sm transition-colors">
-                  <Settings className="w-4 h-4 mr-1.5" />
-                  Settings
+              <Link href="/admin/settings" title="Settings">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
+                  <Settings className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden xl:inline">Settings</span>
                 </div>
               </Link>
             </div>
 
             <div className="flex items-center space-x-2">
               <ThemeToggle />
-              <button className="relative p-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+              <button className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" title="Notifications">
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               
               <div className="relative">
                 <button
                   onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                  className="flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-0.5 transition-colors"
+                  className="flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 transition-colors"
+                  title="Account"
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                     A
@@ -446,7 +448,20 @@ export default function AdminDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {[
+          {loading ? (
+            // Skeleton Loading
+            Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                <div className="flex items-start justify-between mb-4">
+                  <Skeleton className="w-12 h-12 rounded-xl" />
+                  <Skeleton className="w-16 h-5" />
+                </div>
+                <Skeleton className="h-8 w-20 mb-2" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            ))
+          ) : (
+            [
             { title: 'Total Reports', value: stats.totalReports.value, change: stats.totalReports.change, trend: stats.totalReports.trend, icon: FileText, color: 'from-blue-500 to-indigo-500' },
             { title: 'Pending Issues', value: stats.pendingReports.value, change: stats.pendingReports.change, trend: stats.pendingReports.trend, icon: Clock, color: 'from-orange-500 to-red-500' },
             { title: 'Resolved Today', value: stats.resolvedToday.value, change: stats.resolvedToday.change, trend: stats.resolvedToday.trend, icon: CheckCircle, color: 'from-green-500 to-teal-500' },
@@ -475,11 +490,26 @@ export default function AdminDashboard() {
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{loading ? '...' : stat.value}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-300">{stat.title}</p>
             </motion.div>
-          ))}
+          ))
+          )}
         </div>
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {loading ? (
+            // Skeleton for charts
+            <>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                <Skeleton className="h-6 w-64 mb-4" />
+                <Skeleton className="h-[300px] w-full" />
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                <Skeleton className="h-6 w-48 mb-4" />
+                <Skeleton className="h-[300px] w-full" />
+              </div>
+            </>
+          ) : (
+            <>
           {/* Reports Over Time */}
           <motion.div
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6"
@@ -523,6 +553,8 @@ export default function AdminDashboard() {
               </BarChart>
             </ResponsiveContainer>
           </motion.div>
+            </>
+          )}
         </div>
 
         {/* Recent Reports Table */}
@@ -570,11 +602,17 @@ export default function AdminDashboard() {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {loading ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                      Loading reports...
-                    </td>
-                  </tr>
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <tr key={index}>
+                      <td className="px-6 py-4"><Skeleton className="h-10 w-full" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-full" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-20" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-5 w-24 ml-auto" /></td>
+                    </tr>
+                  ))
                 ) : recentReports.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">

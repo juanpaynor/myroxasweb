@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type DepartmentInfo = {
   id: string;
@@ -224,53 +225,53 @@ export default function DepartmentDashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
       <nav className="bg-white shadow-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-          <div className="flex justify-between items-center h-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14">
             {/* Logo */}
-            <div className="flex items-center flex-shrink-0">
-              <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 mr-2" />
-              <h1 className="text-sm sm:text-base md:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                Department <span className="hidden sm:inline">Portal</span>
+            <div className="flex items-center">
+              <Building2 className="w-6 h-6 text-blue-600 mr-2" />
+              <h1 className="text-base sm:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                Department Portal
               </h1>
             </div>
 
             {/* Nav Links */}
-            <div className="flex items-center space-x-0.5 sm:space-x-0.5 overflow-x-auto">
-              <Link href="/department/dashboard">
-                <div className="flex items-center px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg bg-blue-50 text-blue-700 font-medium whitespace-nowrap">
-                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
-                  <span className="hidden md:inline text-sm">Dashboard</span>
+            <div className="flex items-center space-x-1">
+              <Link href="/department/dashboard" title="Dashboard">
+                <div className="flex items-center px-3 py-2 rounded-lg bg-blue-50 text-blue-700 transition-colors">
+                  <Building2 className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden lg:inline">Dashboard</span>
                 </div>
               </Link>
-              <Link href="/department/reports">
-                <div className="flex items-center px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors whitespace-nowrap">
-                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
-                  <span className="hidden md:inline text-sm">Reports</span>
+              <Link href="/department/reports" title="Reports">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                  <FileText className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden lg:inline">Reports</span>
                 </div>
               </Link>
-              <Link href="/department/queue">
-                <div className="flex items-center px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors whitespace-nowrap">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
-                  <span className="hidden md:inline text-sm">Queue</span>
+              <Link href="/department/queue" title="Queue">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                  <Clock className="w-5 h-5" />
+                  <span className="ml-2 text-sm font-medium hidden lg:inline">Queue</span>
                 </div>
               </Link>
             </div>
 
             {/* Right Side Icons */}
-            <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4 flex-shrink-0">
-              <button className="hidden sm:flex relative p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
+            <div className="flex items-center space-x-2">
+              <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors" title="Notifications">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               
               {/* Settings Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                  className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                   title="Settings"
                 >
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                  <Settings className="w-5 h-5" />
                 </button>
                 
                 {/* Dropdown Menu */}
@@ -353,6 +354,19 @@ export default function DepartmentDashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="w-8 h-8 rounded" />
+                </div>
+                <Skeleton className="h-9 w-16 mb-1" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            ))
+          ) : (
+            <>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -408,6 +422,8 @@ export default function DepartmentDashboard() {
             <p className="text-3xl font-bold text-gray-900">{stats.completed}</p>
             <p className="text-xs text-gray-500 mt-1">Successfully resolved</p>
           </motion.div>
+            </>
+          )}
         </div>
 
         {/* Recent Reports */}
