@@ -1,10 +1,16 @@
-import { Sun } from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 export function AnimatedLogo({ className }: { className?: string }) {
   return (
     <div className={cn("absolute", className)}>
-        <Sun className="w-16 h-16 text-primary" />
+        <Image 
+          src="/assets/images/logo.ico" 
+          alt="MyRoxas Logo" 
+          width={64} 
+          height={64}
+          className="w-16 h-16"
+        />
     </div>
   );
 }

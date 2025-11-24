@@ -17,12 +17,15 @@ import {
   User,
   LogOut,
   Trash2,
-  CheckCircle2
+  CheckCircle2,
+  FileDown
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type ReportWithDetails = {
   id: string;
@@ -182,6 +185,53 @@ export default function DepartmentReports() {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  }
+
+  function exportToPDF() {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text('MyRoxas Department - Reports Summary', 14, 22);
+    
+    // Add metadata
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
+    doc.text(`Status Filter: ${statusFilter}`, 14, 36);
+    doc.text(`Urgency Filter: ${urgencyFilter}`, 14, 42);
+    doc.text(`Total Reports: ${filteredReports.length}`, 14, 48);
+    
+    // Prepare table data
+    const tableData = filteredReports.map(report => [
+      report.id.slice(0, 8),
+      report.title,
+      report.category?.name || 'N/A',
+      report.status.replace('_', ' ').toUpperCase(),
+      report.urgency.toUpperCase(),
+      new Date(report.created_at).toLocaleDateString(),
+      report.location_address || 'N/A'
+    ]);
+    
+    // Add table
+    autoTable(doc, {
+      head: [['ID', 'Title', 'Category', 'Status', 'Urgency', 'Date', 'Location']],
+      body: tableData,
+      startY: 54,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [59, 130, 246] }, // Blue color for department
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 25 },
+        6: { cellWidth: 35 }
+      }
+    });
+    
+    // Save the PDF
+    doc.save(`department-reports-${new Date().toISOString().split('T')[0]}.pdf`);
   }
 
   async function fetchReportDetails(reportId: string) {
@@ -536,6 +586,17 @@ export default function DepartmentReports() {
                 <option value="high">High</option>
               </select>
             </div>
+          </div>
+
+          {/* Export Button */}
+          <div className="mt-4">
+            <button
+              onClick={exportToPDF}
+              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all"
+            >
+              <FileDown className="w-5 h-5" />
+              Export to PDF
+            </button>
           </div>
         </div>
 

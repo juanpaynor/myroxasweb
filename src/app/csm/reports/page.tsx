@@ -11,13 +11,16 @@ import {
   Eye,
   MessageSquare,
   Trash2,
-  CheckCircle2
+  CheckCircle2,
+  FileDown
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getIconEmoji } from '@/lib/icons';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type Report = {
   id: string
@@ -182,6 +185,52 @@ export default function CSMReports() {
     }
   }
 
+  function exportToPDF() {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text('MyRoxas CSM - Reports Summary', 14, 22);
+    
+    // Add metadata
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
+    doc.text(`Filter: ${filterStatus}`, 14, 36);
+    doc.text(`Total Reports: ${filteredReports.length}`, 14, 42);
+    
+    // Prepare table data
+    const tableData = filteredReports.map(report => [
+      report.id.slice(0, 8),
+      report.title,
+      report.category.name,
+      report.status.replace('_', ' ').toUpperCase(),
+      report.urgency.toUpperCase(),
+      formatDate(report.created_at),
+      report.location_address || 'N/A'
+    ]);
+    
+    // Add table
+    autoTable(doc, {
+      head: [['ID', 'Title', 'Category', 'Status', 'Urgency', 'Date', 'Location']],
+      body: tableData,
+      startY: 48,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [234, 179, 8] }, // Yellow color
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 25 },
+        6: { cellWidth: 35 }
+      }
+    });
+    
+    // Save the PDF
+    doc.save(`csm-reports-${filterStatus.toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`);
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
@@ -291,6 +340,15 @@ export default function CSMReports() {
                 <option value="rejected">Rejected</option>
               </select>
             </div>
+
+            {/* Export PDF Button */}
+            <button
+              onClick={exportToPDF}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:shadow-lg transition-all"
+            >
+              <FileDown className="w-5 h-5" />
+              Export PDF
+            </button>
           </div>
         </motion.div>
 
