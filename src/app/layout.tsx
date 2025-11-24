@@ -8,6 +8,9 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 export const metadata: Metadata = {
   title: 'MyRoxas - Your City, Your App',
   description: 'Report issues, book appointments, and connect with Roxas City services.',
+  icons: {
+    icon: '/assets/images/logo.ico',
+  },
 };
 
 export default function RootLayout({
