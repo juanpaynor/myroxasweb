@@ -5,6 +5,7 @@ import { AppShowcase } from '@/components/app-showcase';
 import { Features } from '@/components/features';
 import { FAQ } from '@/components/faq';
 import { EmergencyHotlines } from '@/components/emergency-hotlines';
+import { Footer } from '@/components/footer';
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
         <FAQ />
       </main>
       <EmergencyHotlines />
+      <Footer />
     </div>
   );
 }

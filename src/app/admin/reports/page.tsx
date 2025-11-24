@@ -17,7 +17,9 @@ import {
   Building2,
   Shield,
   Megaphone,
-  MessageSquare
+  MessageSquare,
+  Trash2,
+  CheckCircle2
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
@@ -135,6 +137,46 @@ export default function AdminReports() {
   function formatTime(dateString: string) {
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  async function handleResolveReport(reportId: string) {
+    if (!confirm('Are you sure you want to mark this report as resolved?')) return;
+
+    try {
+      const client = await supabase;
+      const { error } = await client
+        .from('reports')
+        .update({ status: 'resolved' })
+        .eq('id', reportId);
+
+      if (error) throw error;
+
+      // Refresh reports
+      fetchReports();
+    } catch (error) {
+      console.error('Error resolving report:', error);
+      alert('Failed to resolve report');
+    }
+  }
+
+  async function handleDeleteReport(reportId: string) {
+    if (!confirm('Are you sure you want to delete this report? This action cannot be undone.')) return;
+
+    try {
+      const client = await supabase;
+      const { error } = await client
+        .from('reports')
+        .delete()
+        .eq('id', reportId);
+
+      if (error) throw error;
+
+      // Refresh reports
+      fetchReports();
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      alert('Failed to delete report');
+    }
   }
 
   return (
@@ -384,13 +426,31 @@ export default function AdminReports() {
                           <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 dark:text-gray-400">{formatTime(report.created_at)}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <Link href={`/admin/reports/${report.id}`}>
-                          <button className="inline-flex items-center gap-1 text-yellow-600 hover:text-yellow-700 font-semibold text-sm">
-                            <Eye className="w-4 h-4" />
-                            View
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-2">
+                          <Link href={`/admin/reports/${report.id}`}>
+                            <button className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-md font-medium transition-colors">
+                              <Eye className="w-4 h-4" />
+                              View
+                            </button>
+                          </Link>
+                          {report.status !== 'resolved' && (
+                            <button 
+                              onClick={() => handleResolveReport(report.id)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md font-medium transition-colors"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              Resolve
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => handleDeleteReport(report.id)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md font-medium transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
                           </button>
-                        </Link>
+                        </div>
                       </td>
                     </motion.tr>
                   ))

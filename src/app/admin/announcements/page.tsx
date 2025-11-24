@@ -212,13 +212,13 @@ export default function AnnouncementsPage() {
       const fileName = `${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await client.storage
-        .from('announcements')
+        .from('announcement-images')
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = client.storage
-        .from('announcements')
+        .from('announcement-images')
         .getPublicUrl(fileName);
 
       setFormData({ ...formData, featured_image_url: urlData.publicUrl });
@@ -248,13 +248,13 @@ export default function AnnouncementsPage() {
     const fileName = `content-${Date.now()}.${fileExt}`;
 
     const { error: uploadError } = await client.storage
-      .from('announcements')
+      .from('announcement-images')
       .upload(fileName, file);
 
     if (uploadError) throw uploadError;
 
     const { data: urlData } = client.storage
-      .from('announcements')
+      .from('announcement-images')
       .getPublicUrl(fileName);
 
     return urlData.publicUrl;
@@ -607,11 +607,13 @@ export default function AnnouncementsPage() {
               >
                 <div className="flex gap-4">
                   {announcement.featured_image_url && (
-                    <img
-                      src={announcement.featured_image_url}
-                      alt={announcement.title}
-                      className="w-32 h-32 object-cover rounded-lg flex-shrink-0"
-                    />
+                    <div className="w-32 h-32 flex-shrink-0">
+                      <img
+                        src={announcement.featured_image_url}
+                        alt={announcement.title}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    </div>
                   )}
                   
                   <div className="flex-1">
@@ -828,11 +830,11 @@ export default function AnnouncementsPage() {
                       )}
                     </div>
                     {formData.featured_image_url && (
-                      <div className="mt-3 relative">
+                      <div className="mt-3 relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
                         <img
                           src={formData.featured_image_url}
                           alt="Preview"
-                          className="w-full h-48 object-cover rounded-lg"
+                          className="w-full h-full object-cover"
                         />
                         <button
                           type="button"

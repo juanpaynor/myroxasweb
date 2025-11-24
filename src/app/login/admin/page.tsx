@@ -141,13 +141,7 @@ export default function AdminLoginPage() {
           </form>
 
           {/* Footer Links */}
-          <div className="mt-6 text-center space-y-2">
-            <Link
-              href="/login/admin/signup"
-              className="block text-sm text-orange-600 hover:text-orange-700 font-semibold transition-colors"
-            >
-              Create admin account
-            </Link>
+          <div className="mt-6 text-center">
             <Link
               href="/login/forgot-password"
               className="block text-sm text-gray-600 hover:text-orange-600 transition-colors"

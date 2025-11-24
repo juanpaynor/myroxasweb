@@ -9,7 +9,9 @@ import {
   Search,
   Filter,
   Eye,
-  MessageSquare
+  MessageSquare,
+  Trash2,
+  CheckCircle2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -137,6 +139,46 @@ export default function CSMReports() {
       router.push('/login/csm');
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  }
+
+  async function handleResolveReport(reportId: string) {
+    if (!confirm('Are you sure you want to mark this report as resolved?')) return;
+
+    try {
+      const client = await supabase;
+      const { error } = await client
+        .from('reports')
+        .update({ status: 'resolved' })
+        .eq('id', reportId);
+
+      if (error) throw error;
+
+      // Refresh reports
+      fetchReports();
+    } catch (error) {
+      console.error('Error resolving report:', error);
+      alert('Failed to resolve report');
+    }
+  }
+
+  async function handleDeleteReport(reportId: string) {
+    if (!confirm('Are you sure you want to delete this report? This action cannot be undone.')) return;
+
+    try {
+      const client = await supabase;
+      const { error } = await client
+        .from('reports')
+        .delete()
+        .eq('id', reportId);
+
+      if (error) throw error;
+
+      // Refresh reports
+      fetchReports();
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      alert('Failed to delete report');
     }
   }
 
@@ -311,13 +353,29 @@ export default function CSMReports() {
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-end pt-4 border-t border-gray-100">
+                <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
                   <Link href={`/csm/reports/${report.id}`}>
                     <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-all">
                       <Eye className="w-4 h-4" />
-                      View & Respond
+                      View
                     </button>
                   </Link>
+                  {report.status !== 'resolved' && (
+                    <button 
+                      onClick={() => handleResolveReport(report.id)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      Resolve
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => handleDeleteReport(report.id)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-rose-500 text-white font-semibold rounded-lg hover:from-red-600 hover:to-rose-600 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
                 </div>
               </motion.div>
             ))

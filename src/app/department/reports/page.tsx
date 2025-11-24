@@ -15,7 +15,9 @@ import {
   Clock,
   Monitor,
   User,
-  LogOut
+  LogOut,
+  Trash2,
+  CheckCircle2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -250,7 +252,57 @@ export default function DepartmentReports() {
     }
   }
 
-  async function handleCommentSubmit() {
+  async function handleResolveReport(reportId: string) {
+    if (!confirm('Are you sure you want to mark this report as resolved?')) return;
+
+    try {
+      const client = await supabase;
+      const { error } = await client
+        .from('reports')
+        .update({ status: 'resolved' })
+        .eq('id', reportId);
+
+      if (error) throw error;
+
+      // Refresh reports
+      await fetchReports(departments.map(d => d.id));
+      
+      // Close modal if this is the selected report
+      if (selectedReport?.id === reportId) {
+        setSelectedReport(null);
+      }
+    } catch (error) {
+      console.error('Error resolving report:', error);
+      alert('Failed to resolve report');
+    }
+  }
+
+  async function handleDeleteReport(reportId: string) {
+    if (!confirm('Are you sure you want to delete this report? This action cannot be undone.')) return;
+
+    try {
+      const client = await supabase;
+      const { error } = await client
+        .from('reports')
+        .delete()
+        .eq('id', reportId);
+
+      if (error) throw error;
+
+      // Refresh reports
+      await fetchReports(departments.map(d => d.id));
+      
+      // Close modal if this is the selected report
+      if (selectedReport?.id === reportId) {
+        setSelectedReport(null);
+      }
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      alert('Failed to delete report');
+    }
+  }
+
+  async function handleAddComment() {
     if (!selectedReport || !newComment.trim() || !userId) return;
 
     try {
@@ -687,6 +739,29 @@ export default function DepartmentReports() {
                   </div>
                 </div>
 
+                {/* Quick Actions */}
+                <div className="pt-4 border-t border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedReport.status !== 'resolved' && (
+                      <button
+                        onClick={() => handleResolveReport(selectedReport.id)}
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        Mark Resolved
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteReport(selectedReport.id)}
+                      className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Report
+                    </button>
+                  </div>
+                </div>
+
                 {/* Status History */}
                 {statusHistory.length > 0 && (
                   <div className="pt-4 border-t border-gray-200">
@@ -729,7 +804,7 @@ export default function DepartmentReports() {
                       rows={3}
                     />
                     <button
-                      onClick={handleCommentSubmit}
+                      onClick={handleAddComment}
                       disabled={!newComment.trim()}
                       className="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
