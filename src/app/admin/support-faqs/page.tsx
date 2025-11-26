@@ -22,7 +22,8 @@ import {
   Filter,
   Sparkles,
   Loader2,
-  Globe
+  Globe,
+  FileUp
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -71,14 +72,11 @@ export default function AdminSupportFAQs() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFaqs, setSelectedFaqs] = useState<string[]>([]);
-  
-  // AI Generation state
-  const [showAIModal, setShowAIModal] = useState(false);
-  const [aiGenerating, setAiGenerating] = useState(false);
-  const [aiMode, setAiMode] = useState<'url' | 'prompt'>('prompt');
-  const [aiInput, setAiInput] = useState('');
-  const [aiTone, setAiTone] = useState('professional');
-  const [generatedFaqs, setGeneratedFaqs] = useState<Array<{question: string; answer: string}>>([]);
+  const [sortBy, setSortBy] = useState<'recent' | 'views' | 'helpful'>('recent');
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfAnalyzing, setPdfAnalyzing] = useState(false);
+  const [analyzedFaqs, setAnalyzedFaqs] = useState<any[]>([]);
+  const [pdfPreview, setPdfPreview] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -96,7 +94,7 @@ export default function AdminSupportFAQs() {
 
   useEffect(() => {
     filterFaqs();
-  }, [faqs, selectedCategory, selectedStatus, searchQuery]);
+  }, [faqs, selectedCategory, selectedStatus, searchQuery, sortBy]);
 
   async function checkAuth() {
     try {
@@ -160,6 +158,15 @@ export default function AdminSupportFAQs() {
         faq.answer.toLowerCase().includes(query) ||
         faq.keywords.some(k => k.toLowerCase().includes(query))
       );
+    }
+
+    // Apply sorting
+    if (sortBy === 'views') {
+      filtered.sort((a, b) => b.view_count - a.view_count);
+    } else if (sortBy === 'helpful') {
+      filtered.sort((a, b) => b.helpful_count - a.helpful_count);
+    } else {
+      filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
 
     setFilteredFaqs(filtered);
@@ -236,75 +243,6 @@ export default function AdminSupportFAQs() {
     }
   }
 
-  async function handleGenerateWithAI() {
-    if (!aiInput.trim()) {
-      setMessage(aiMode === 'url' ? 'Please enter a URL' : 'Please enter a topic or question');
-      return;
-    }
-
-    setAiGenerating(true);
-    setMessage('');
-
-    try {
-      const payload = aiMode === 'url' 
-        ? { url: aiInput.trim(), tone: aiTone }
-        : { prompt: aiInput.trim(), tone: aiTone };
-
-      const response = await fetch('/api/admin/generate-faq', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setGeneratedFaqs(data.faqs);
-        setMessage(`Generated ${data.faqs.length} FAQs! Review and select which ones to save.`);
-      } else {
-        const error = await response.json();
-        setMessage(error.error || 'Failed to generate FAQs');
-      }
-    } catch (error) {
-      console.error('Error generating FAQs:', error);
-      setMessage('Failed to generate FAQs. Please try again.');
-    } finally {
-      setAiGenerating(false);
-    }
-  }
-
-  async function handleSaveGeneratedFAQ(generatedFaq: {question: string; answer: string}) {
-    try {
-      const payload = {
-        category: formData.category,
-        question: generatedFaq.question,
-        answer: generatedFaq.answer,
-        keywords: [],
-        display_order: 0,
-        is_active: true
-      };
-
-      const response = await fetch('/api/admin/support/faqs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        setMessage('FAQ saved successfully!');
-        await fetchFAQs();
-        // Remove from generated list
-        setGeneratedFaqs(prev => prev.filter(faq => faq.question !== generatedFaq.question));
-        setTimeout(() => setMessage(''), 3000);
-      } else {
-        const error = await response.json();
-        setMessage(error.error || 'Failed to save FAQ');
-      }
-    } catch (error) {
-      console.error('Error saving FAQ:', error);
-      setMessage('Failed to save FAQ');
-    }
-  }
-
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this FAQ? This action cannot be undone.')) {
       return;
@@ -355,6 +293,59 @@ export default function AdminSupportFAQs() {
     }
   }
 
+  async function handleBulkDelete() {
+    if (selectedFaqs.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedFaqs.length} FAQ(s)? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await Promise.all(
+        selectedFaqs.map(id => 
+          fetch(`/api/admin/support/faqs/${id}`, { method: 'DELETE' })
+        )
+      );
+      
+      setMessage(`${selectedFaqs.length} FAQ(s) deleted successfully!`);
+      setSelectedFaqs([]);
+      await fetchFAQs();
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      console.error('Error bulk deleting FAQs:', error);
+      setMessage('Failed to delete FAQs');
+    }
+  }
+
+  function exportFAQs() {
+    const exportData = filteredFaqs.map(faq => ({
+      Category: faq.category,
+      Question: faq.question,
+      Answer: faq.answer,
+      Keywords: faq.keywords.join(', '),
+      Status: faq.is_active ? 'Active' : 'Inactive',
+      Views: faq.view_count,
+      Helpful: faq.helpful_count,
+      'Display Order': faq.display_order,
+      'Created At': new Date(faq.created_at).toLocaleString()
+    }));
+
+    const csv = [
+      Object.keys(exportData[0]).join(','),
+      ...exportData.map(row => 
+        Object.values(row).map(val => `"${val}"`).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `faqs-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
   function toggleSelectFaq(id: string) {
     setSelectedFaqs(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
@@ -366,6 +357,75 @@ export default function AdminSupportFAQs() {
       setSelectedFaqs([]);
     } else {
       setSelectedFaqs(filteredFaqs.map(f => f.id));
+    }
+  }
+
+  async function handlePdfUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPdfAnalyzing(true);
+    setShowPdfModal(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/admin/analyze-pdf', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to analyze PDF');
+      }
+
+      setAnalyzedFaqs(data.faqs);
+      setPdfPreview(data.extractedText);
+      setMessage('PDF analyzed successfully! Review and save the generated FAQs.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to analyze PDF');
+      setShowPdfModal(false);
+    } finally {
+      setPdfAnalyzing(false);
+      // Reset file input
+      e.target.value = '';
+    }
+  }
+
+  async function handleSaveAnalyzedFaqs(selectedIndices: number[]) {
+    const client = await supabase;
+    
+    try {
+      const faqsToSave = selectedIndices.map(index => analyzedFaqs[index]);
+      
+      for (const faq of faqsToSave) {
+        const { error } = await client
+          .from('faqs')
+          .insert({
+            category: faq.category,
+            question: faq.question,
+            answer: faq.answer,
+            keywords: faq.keywords,
+            is_active: true,
+            display_order: 0,
+            view_count: 0,
+            helpful_count: 0
+          });
+
+        if (error) throw error;
+      }
+
+      setMessage(`Successfully added ${faqsToSave.length} FAQ(s) from PDF!`);
+      setShowPdfModal(false);
+      setAnalyzedFaqs([]);
+      setPdfPreview('');
+      fetchFAQs();
+    } catch (error) {
+      setMessage('Failed to save FAQs');
+      console.error('Error saving analyzed FAQs:', error);
     }
   }
 
@@ -594,12 +654,23 @@ export default function AdminSupportFAQs() {
             </div>
 
             <div className="flex gap-2">
-              <button
-                onClick={() => setShowAIModal(true)}
-                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 whitespace-nowrap"
+              {/* Sort Dropdown */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 dark:focus:ring-orange-800 outline-none"
               >
-                <Sparkles className="w-5 h-5" />
-                Generate with AI
+                <option value="recent">Sort: Most Recent</option>
+                <option value="views">Sort: Most Viewed</option>
+                <option value="helpful">Sort: Most Helpful</option>
+              </select>
+
+              <button
+                onClick={exportFAQs}
+                className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 transition-all flex items-center gap-2 whitespace-nowrap"
+              >
+                <Globe className="w-5 h-5" />
+                Export
               </button>
               <button
                 onClick={openAddModal}
@@ -608,6 +679,18 @@ export default function AdminSupportFAQs() {
                 <Plus className="w-5 h-5" />
                 Add FAQ
               </button>
+              
+              {/* PDF Upload */}
+              <label className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                <FileUp className="w-5 h-5" />
+                Import PDF
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handlePdfUpload}
+                  className="hidden"
+                />
+              </label>
             </div>
           </div>
 
@@ -630,6 +713,13 @@ export default function AdminSupportFAQs() {
               >
                 <X className="w-4 h-4" />
                 Deactivate
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
               </button>
               <button
                 onClick={() => setSelectedFaqs([])}
@@ -919,190 +1009,120 @@ export default function AdminSupportFAQs() {
         )}
       </AnimatePresence>
 
-      {/* AI Generation Modal */}
+      {/* PDF Analysis Modal */}
       <AnimatePresence>
-        {showAIModal && (
+        {showPdfModal && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-40"
-              onClick={() => !aiGenerating && setShowAIModal(false)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+              onClick={() => !pdfAnalyzing && setShowPdfModal(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl max-h-[90vh] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden flex flex-col"
             >
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="w-6 h-6 text-white" />
-                    <h2 className="text-2xl font-bold text-white">Generate FAQs with AI</h2>
-                  </div>
-                  <button
-                    onClick={() => !aiGenerating && setShowAIModal(false)}
-                    disabled={aiGenerating}
-                    className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors disabled:opacity-50"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-
-                <div className="p-6 space-y-6">
-                  {/* Mode Selection */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                      Generation Mode
-                    </label>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setAiMode('prompt')}
-                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-                          aiMode === 'prompt'
-                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400'
-                            : 'border-gray-300 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-700'
-                        }`}
-                      >
-                        <div className="flex items-center justify-center gap-2">
-                          <MessageSquare className="w-5 h-5" />
-                          <span className="font-medium">From Topic/Question</span>
-                        </div>
-                        <p className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                          Let AI generate FAQs about a specific topic
-                        </p>
-                      </button>
-                      <button
-                        onClick={() => setAiMode('url')}
-                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-                          aiMode === 'url'
-                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400'
-                            : 'border-gray-300 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-700'
-                        }`}
-                      >
-                        <div className="flex items-center justify-center gap-2">
-                          <Globe className="w-5 h-5" />
-                          <span className="font-medium">From Website URL</span>
-                        </div>
-                        <p className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                          AI reads and generates FAQs from a webpage
-                        </p>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Input Field */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      {aiMode === 'url' ? 'Website URL' : 'Topic or Question'}
-                    </label>
-                    <input
-                      type={aiMode === 'url' ? 'url' : 'text'}
-                      value={aiInput}
-                      onChange={(e) => setAiInput(e.target.value)}
-                      placeholder={aiMode === 'url' 
-                        ? 'https://example.com/page-with-information'
-                        : 'e.g., How to report a street issue in Roxas City'
-                      }
-                      disabled={aiGenerating}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 outline-none disabled:opacity-50"
-                    />
-                    {aiMode === 'url' && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        💡 Tip: Works best with government websites, documentation pages, or informational content
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Category Selection */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      Default Category (for generated FAQs)
-                    </label>
-                    <select
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      disabled={aiGenerating}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 outline-none disabled:opacity-50"
-                    >
-                      {CATEGORIES.map(cat => (
-                        <option key={cat.value} value={cat.value}>{cat.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Tone Selection */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      Tone
-                    </label>
-                    <select
-                      value={aiTone}
-                      onChange={(e) => setAiTone(e.target.value)}
-                      disabled={aiGenerating}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 outline-none disabled:opacity-50"
-                    >
-                      <option value="professional">Professional</option>
-                      <option value="friendly">Friendly</option>
-                      <option value="casual">Casual</option>
-                      <option value="formal">Formal</option>
-                    </select>
-                  </div>
-
-                  {/* Generate Button */}
-                  <button
-                    onClick={handleGenerateWithAI}
-                    disabled={aiGenerating || !aiInput.trim()}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {aiGenerating ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Generating FAQs...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-5 h-5" />
-                        Generate FAQs
-                      </>
-                    )}
-                  </button>
-
-                  {/* Generated FAQs */}
-                  {generatedFaqs.length > 0 && (
-                    <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                        Generated FAQs ({generatedFaqs.length})
-                      </h3>
-                      {generatedFaqs.map((faq, index) => (
-                        <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-3">
-                          <div>
-                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Question:</p>
-                            <p className="text-gray-900 dark:text-white font-medium">{faq.question}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Answer:</p>
-                            <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{faq.answer}</p>
-                          </div>
-                          <button
-                            onClick={() => handleSaveGeneratedFAQ(faq)}
-                            className="w-full px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
-                          >
-                            <Check className="w-4 h-4" />
-                            Save This FAQ
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-500 to-pink-500">
+                <h2 className="text-2xl font-bold text-white">
+                  {pdfAnalyzing ? 'Analyzing PDF...' : 'Review Generated FAQs'}
+                </h2>
+                <p className="text-purple-100 text-sm mt-1">
+                  {pdfAnalyzing ? 'AI is reading and analyzing your document' : 'Select FAQs to add to your knowledge base'}
+                </p>
               </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                {pdfAnalyzing ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="w-12 h-12 text-purple-500 animate-spin mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">Extracting text and generating FAQs...</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">This may take a minute</p>
+                  </div>
+                ) : (
+                  <>
+                    {pdfPreview && (
+                      <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Document Preview:</h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 font-mono leading-relaxed">
+                          {pdfPreview}...
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      {analyzedFaqs.map((faq, index) => (
+                        <PDFAnalyzedFaqItem
+                          key={index}
+                          faq={faq}
+                          index={index}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {!pdfAnalyzing && analyzedFaqs.length > 0 && (
+                <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setShowPdfModal(false);
+                      setAnalyzedFaqs([]);
+                      setPdfPreview('');
+                    }}
+                    className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      const allIndices = analyzedFaqs.map((_, i) => i);
+                      handleSaveAnalyzedFaqs(allIndices);
+                    }}
+                    className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all"
+                  >
+                    Save All FAQs
+                  </button>
+                </div>
+              )}
             </motion.div>
           </>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function PDFAnalyzedFaqItem({ faq, index }: { faq: any; index: number }) {
+  return (
+    <div className="p-4 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-500 transition-colors">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded">
+            {faq.category}
+          </span>
+        </div>
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        {faq.question}
+      </h3>
+      <p className="text-gray-700 dark:text-gray-300 text-sm mb-3 leading-relaxed">
+        {faq.answer}
+      </p>
+      <div className="flex flex-wrap gap-1">
+        {faq.keywords.map((keyword: string, i: number) => (
+          <span
+            key={i}
+            className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs rounded"
+          >
+            {keyword}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

@@ -193,10 +193,10 @@ export default function AdminReports() {
     doc.setFontSize(10);
     doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
     doc.text(`Filter: ${filterStatus}`, 14, 36);
-    doc.text(`Total Reports: ${filteredReports.length}`, 14, 42);
+    doc.text(`Total Reports: ${reports.length}`, 14, 42);
     
     // Prepare table data
-    const tableData = filteredReports.map(report => [
+    const tableData = reports.map((report: any) => [
       report.id.slice(0, 8),
       report.title,
       report.category.name,
