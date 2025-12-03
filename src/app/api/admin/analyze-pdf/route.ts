@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     // Analyze with Gemini AI
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
     
     const prompt = `Analyze the following document and generate comprehensive FAQ entries. 
 For each FAQ entry, provide:

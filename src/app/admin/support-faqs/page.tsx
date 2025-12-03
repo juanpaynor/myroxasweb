@@ -23,7 +23,8 @@ import {
   Sparkles,
   Loader2,
   Globe,
-  FileUp
+  FileUp,
+  Link as LinkIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -77,6 +78,9 @@ export default function AdminSupportFAQs() {
   const [pdfAnalyzing, setPdfAnalyzing] = useState(false);
   const [analyzedFaqs, setAnalyzedFaqs] = useState<any[]>([]);
   const [pdfPreview, setPdfPreview] = useState('');
+  const [showUrlModal, setShowUrlModal] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [urlAnalyzing, setUrlAnalyzing] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -395,6 +399,39 @@ export default function AdminSupportFAQs() {
     }
   }
 
+  async function handleUrlAnalysis() {
+    if (!urlInput.trim()) {
+      setMessage('Please enter a URL');
+      return;
+    }
+
+    setUrlAnalyzing(true);
+    
+    try {
+      const response = await fetch('/api/admin/analyze-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlInput.trim() })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to analyze URL');
+      }
+
+      setAnalyzedFaqs(data.faqs);
+      setPdfPreview(data.extractedText);
+      setMessage('URL analyzed successfully! Review and save the generated FAQs.');
+      // Keep the modal open to show results
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to analyze URL');
+      setShowUrlModal(false);
+    } finally {
+      setUrlAnalyzing(false);
+    }
+  }
+
   async function handleSaveAnalyzedFaqs(selectedIndices: number[]) {
     const client = await supabase;
     
@@ -418,10 +455,12 @@ export default function AdminSupportFAQs() {
         if (error) throw error;
       }
 
-      setMessage(`Successfully added ${faqsToSave.length} FAQ(s) from PDF!`);
+      setMessage(`Successfully added ${faqsToSave.length} FAQ(s)!`);
       setShowPdfModal(false);
+      setShowUrlModal(false);
       setAnalyzedFaqs([]);
       setPdfPreview('');
+      setUrlInput('');
       fetchFAQs();
     } catch (error) {
       setMessage('Failed to save FAQs');
@@ -678,6 +717,15 @@ export default function AdminSupportFAQs() {
               >
                 <Plus className="w-5 h-5" />
                 Add FAQ
+              </button>
+              
+              {/* URL Analysis */}
+              <button
+                onClick={() => setShowUrlModal(true)}
+                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-cyan-600 transition-all flex items-center gap-2 whitespace-nowrap"
+              >
+                <LinkIcon className="w-5 h-5" />
+                Import URL
               </button>
               
               {/* PDF Upload */}
@@ -1003,6 +1051,129 @@ export default function AdminSupportFAQs() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* URL Analysis Modal */}
+      <AnimatePresence>
+        {showUrlModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+              onClick={() => !urlAnalyzing && setShowUrlModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
+            >
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-500 to-cyan-500">
+                <h2 className="text-2xl font-bold text-white">Analyze Website URL</h2>
+                <p className="text-blue-100 text-sm mt-1">
+                  AI will read and analyze the webpage content
+                </p>
+              </div>
+
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                {urlAnalyzing ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">Fetching and analyzing webpage...</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">This may take a minute</p>
+                  </div>
+                ) : analyzedFaqs.length > 0 ? (
+                  <>
+                    {pdfPreview && (
+                      <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Content Preview:</h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 font-mono leading-relaxed">
+                          {pdfPreview}...
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                        Generated FAQs ({analyzedFaqs.length})
+                      </h3>
+                      {analyzedFaqs.map((faq, index) => (
+                        <PDFAnalyzedFaqItem
+                          key={index}
+                          faq={faq}
+                          index={index}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+                      <button
+                        onClick={() => {
+                          setShowUrlModal(false);
+                          setAnalyzedFaqs([]);
+                          setPdfPreview('');
+                          setUrlInput('');
+                        }}
+                        className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          const allIndices = analyzedFaqs.map((_, i) => i);
+                          handleSaveAnalyzedFaqs(allIndices);
+                        }}
+                        className="px-6 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-cyan-600 transition-all"
+                      >
+                        Save All FAQs
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Website URL
+                      </label>
+                      <input
+                        type="url"
+                        value={urlInput}
+                        onChange={(e) => setUrlInput(e.target.value)}
+                        placeholder="https://example.com/page-with-information"
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 outline-none"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        💡 Works best with documentation pages, informational content, or help articles
+                      </p>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4">
+                      <button
+                        onClick={() => {
+                          setShowUrlModal(false);
+                          setUrlInput('');
+                        }}
+                        className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleUrlAnalysis}
+                        disabled={!urlInput.trim()}
+                        className="px-6 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-cyan-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        <Sparkles className="w-5 h-5" />
+                        Analyze URL
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>

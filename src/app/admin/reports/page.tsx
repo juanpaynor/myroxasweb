@@ -2,33 +2,23 @@
 
 import { motion } from 'framer-motion';
 import { 
-  LayoutDashboard, 
-  FileText, 
-  Users, 
-  Settings, 
-  Bell,
   Search,
   Filter,
-  Download,
   MapPin,
   Calendar,
   Eye,
-  FolderKanban,
-  Building2,
-  Shield,
-  Megaphone,
-  MessageSquare,
   Trash2,
   CheckCircle2,
   FileDown
 } from 'lucide-react';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { getIconEmoji } from '@/lib/icons';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AdminNavbar } from '@/components/admin/AdminNavbar';
 
 type Report = {
   id: string
@@ -44,39 +34,82 @@ type Report = {
   }
 }
 
+type AdminProfile = {
+  id: string;
+  full_name: string | null;
+  email: string;
+};
+
 export default function AdminReports() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
 
   useEffect(() => {
-    fetchReports();
+    checkAuth();
+  }, []);
 
-    // Subscribe to real-time updates
-    let channel: any;
-    supabase.then(client => {
-      channel = client
-        .channel('reports-changes')
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'reports' 
-          }, 
-          () => {
-            fetchReports(); // Refresh reports on any change
-          }
-        )
-        .subscribe();
-    });
+  useEffect(() => {
+    if (adminProfile) {
+      fetchReports();
 
-    return () => {
-      if (channel) {
-        supabase.then(client => client.removeChannel(channel));
+      // Subscribe to real-time updates
+      let channel: any;
+      supabase.then(client => {
+        channel = client
+          .channel('reports-changes')
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'reports' 
+            }, 
+            () => {
+              fetchReports(); // Refresh reports on any change
+            }
+          )
+          .subscribe();
+      });
+
+      return () => {
+        if (channel) {
+          supabase.then(client => client.removeChannel(channel));
+        }
+      };
+    }
+  }, [filterStatus, searchQuery, adminProfile]);
+
+  async function checkAuth() {
+    try {
+      const client = await supabase;
+      const { data: { user } } = await client.auth.getUser();
+
+      if (!user) {
+        router.push('/login/admin');
+        return;
       }
-    };
-  }, [filterStatus, searchQuery]);
+
+      const { data: profile } = await client
+        .from('user_profiles')
+        .select('id, full_name, email, role')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile || profile.role !== 'admin') {
+        router.push('/login/admin');
+        return;
+      }
+
+      setAdminProfile(profile);
+      setLoading(false);
+    } catch (error) {
+      console.error('Auth error:', error);
+      router.push('/login/admin');
+    }
+  }
 
   async function fetchReports() {
     try {
@@ -229,90 +262,8 @@ export default function AdminReports() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-700 dark:bg-gray-700 dark:bg-gray-900">
-      {/* Navigation Bar */}
-      <nav className="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14">
-            {/* Logo */}
-            <div className="flex items-center">
-              <h1 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
-                MyRoxas Admin
-              </h1>
-            </div>
-
-            {/* Nav Links */}
-            <div className="hidden md:flex items-center space-x-0.5">
-              <Link href="/admin/dashboard">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 font-medium transition-colors">
-                  <LayoutDashboard className="w-4 h-4 mr-1.5" />
-                  Dashboard
-                </div>
-              </Link>
-              <Link href="/admin/reports">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-sm bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 font-medium">
-                  <FileText className="w-4 h-4 mr-1.5" />
-                  Reports
-                </div>
-              </Link>
-              <Link href="/admin/users">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 font-medium transition-colors">
-                  <Users className="w-4 h-4 mr-1.5" />
-                  Users
-                </div>
-              </Link>
-              <Link href="/admin/categories">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 font-medium transition-colors">
-                  <FolderKanban className="w-4 h-4 mr-1.5" />
-                  Categories
-                </div>
-              </Link>
-              <Link href="/admin/departments">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 font-medium transition-colors">
-                  <Building2 className="w-4 h-4 mr-1.5" />
-                  Departments
-                </div>
-              </Link>
-              <Link href="/admin/department-users">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 font-medium transition-colors">
-                  <Shield className="w-4 h-4 mr-1.5" />
-                  Dept. Staff
-                </div>
-              </Link>
-              <Link href="/admin/announcements">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 font-medium transition-colors">
-                  <Megaphone className="w-4 h-4 mr-1.5" />
-                  Announcements
-                </div>
-              </Link>
-              <Link href="/admin/support-faqs">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 font-medium transition-colors">
-                  <MessageSquare className="w-4 h-4 mr-1.5" />
-                  Support FAQs
-                </div>
-              </Link>
-              <Link href="/admin/settings">
-                <div className="flex items-center px-2 py-1.5 rounded-md text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 font-medium transition-colors">
-                  <Settings className="w-4 h-4 mr-1.5" />
-                  Settings
-                </div>
-              </Link>
-            </div>
-
-            {/* Right Side Icons */}
-            <div className="flex items-center space-x-2">
-              <ThemeToggle />
-              <button className="relative p-1.5 text-gray-600 dark:text-gray-300 dark:text-gray-300 dark:text-gray-300 hover:text-gray-900 dark:bg-gray-700:text-white hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-700 rounded-full transition-colors">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-              <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold">
-                A
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <AdminNavbar adminProfile={adminProfile} />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
