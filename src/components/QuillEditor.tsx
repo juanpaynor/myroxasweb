@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import 'react-quill/dist/quill.snow.css';
 
@@ -49,6 +49,11 @@ interface QuillEditorProps {
 
 export default function QuillEditor({ value, onChange, placeholder, onImageUpload }: QuillEditorProps) {
   const quillRef = useRef<any>(null);
+
+  // Handle content changes
+  const handleChange = useCallback((content: string) => {
+    onChange(content);
+  }, [onChange]);
 
   // Image handler for the toolbar
   const imageHandler = () => {
@@ -118,12 +123,13 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
       <ReactQuill
         forwardedRef={quillRef}
         theme="snow"
-        value={value}
-        onChange={onChange}
+        value={value || ''}
+        onChange={handleChange}
         modules={modules}
         formats={formats}
         placeholder={placeholder}
         className="bg-white"
+        preserveWhitespace
       />
     </div>
   );

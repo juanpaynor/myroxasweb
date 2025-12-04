@@ -83,6 +83,15 @@ type StatusHistory = {
   } | null
 }
 
+type Attachment = {
+  id: string
+  file_url: string
+  file_name: string
+  file_type: string
+  file_size: number
+  created_at: string
+}
+
 type Category = {
   id: string
   name: string
@@ -97,6 +106,7 @@ export default function AdminReportDetail() {
   const [report, setReport] = useState<Report | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [staffMembers, setStaffMembers] = useState<Array<{id: string, full_name: string, role: string}>>([]);
   const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([]);
@@ -273,7 +283,8 @@ export default function AdminReportDetail() {
 
       await Promise.all([
         fetchComments(),
-        fetchStatusHistory()
+        fetchStatusHistory(),
+        fetchAttachments()
       ]);
       
     } catch (error) {
@@ -316,6 +327,41 @@ export default function AdminReportDetail() {
       setComments(transformedComments);
     } catch (error) {
       console.error('Error fetching comments:', error);
+    }
+  }
+
+  async function fetchAttachments() {
+    try {
+      const client = await supabase;
+      const { data, error } = await client
+        .from('report_attachments')
+        .select('*')
+        .eq('report_id', reportId)
+        .order('created_at', { ascending: true});
+
+      if (error) throw error;
+      
+      // Transform file URLs to public URLs if they're storage paths
+      const transformedAttachments = (data || []).map(attachment => {
+        let fileUrl = attachment.file_url;
+        
+        // If file_url is a storage path (not a full URL), generate public URL
+        if (fileUrl && !fileUrl.startsWith('http')) {
+          const { data: publicUrlData } = client.storage
+            .from('report-attachments')
+            .getPublicUrl(fileUrl);
+          fileUrl = publicUrlData.publicUrl;
+        }
+        
+        return {
+          ...attachment,
+          file_url: fileUrl
+        };
+      });
+      
+      setAttachments(transformedAttachments);
+    } catch (error) {
+      console.error('Error fetching attachments:', error);
     }
   }
 
@@ -763,6 +809,44 @@ export default function AdminReportDetail() {
                   )}
                   
                   <p className="text-gray-700 mb-4">{report.description}</p>
+                  
+                  {/* Attachments */}
+                  {attachments.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Attached Images ({attachments.length})
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {attachments.map((attachment) => (
+                          <a
+                            key={attachment.id}
+                            href={attachment.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-orange-500 transition-all"
+                          >
+                            {attachment.file_type.startsWith('image/') ? (
+                              <img
+                                src={attachment.file_url}
+                                alt={attachment.file_name}
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                                <FileText className="w-12 h-12 text-gray-400" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center">
+                              <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
+                                View Full Size
+                              </span>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {report.location_address && (

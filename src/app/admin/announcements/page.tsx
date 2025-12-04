@@ -33,7 +33,6 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
-import QuillEditor from '@/components/QuillEditor';
 
 type Category = {
   id: string;
@@ -57,8 +56,42 @@ type Announcement = {
   priority: number;
   view_count: number;
   created_at: string;
+  status: 'draft' | 'scheduled' | 'published' | 'expired' | 'archived';
+  scheduled_publish_at: string | null;
+  expires_at: string | null;
+  auto_archive: boolean;
   category?: Category;
 };
+
+// Helper function to get status badge
+function getStatusBadge(status: string) {
+  const badges = {
+    draft: { emoji: '📝', label: 'Draft', bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300' },
+    scheduled: { emoji: '⏰', label: 'Scheduled', bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300' },
+    published: { emoji: '✅', label: 'Published', bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300' },
+    expired: { emoji: '⏱️', label: 'Expired', bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-300' },
+    archived: { emoji: '📦', label: 'Archived', bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-300' }
+  };
+  return badges[status as keyof typeof badges] || badges.draft;
+}
+
+// Helper function to format countdown
+function getCountdown(date: string | null) {
+  if (!date) return null;
+  const now = new Date();
+  const target = new Date(date);
+  const diff = target.getTime() - now.getTime();
+  
+  if (diff < 0) return null;
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
 
 export default function AnnouncementsPage() {
   const router = useRouter();
@@ -82,7 +115,11 @@ export default function AnnouncementsPage() {
     author: 'Roxas City Government',
     is_published: true,
     is_featured: false,
-    priority: 5
+    priority: 5,
+    status: 'published' as 'draft' | 'scheduled' | 'published' | 'expired' | 'archived',
+    scheduled_publish_at: '',
+    expires_at: '',
+    auto_archive: false
   });
 
   useEffect(() => {
@@ -168,7 +205,11 @@ export default function AnnouncementsPage() {
       author: 'Roxas City Government',
       is_published: true,
       is_featured: false,
-      priority: 5
+      priority: 5,
+      status: 'published',
+      scheduled_publish_at: '',
+      expires_at: '',
+      auto_archive: false
     });
     setShowModal(true);
   }
@@ -184,7 +225,11 @@ export default function AnnouncementsPage() {
       author: announcement.author,
       is_published: announcement.is_published,
       is_featured: announcement.is_featured,
-      priority: announcement.priority
+      priority: announcement.priority,
+      status: announcement.status || 'published',
+      scheduled_publish_at: announcement.scheduled_publish_at ? new Date(announcement.scheduled_publish_at).toISOString().slice(0, 16) : '',
+      expires_at: announcement.expires_at ? new Date(announcement.expires_at).toISOString().slice(0, 16) : '',
+      auto_archive: announcement.auto_archive || false
     });
     setShowModal(true);
   }
@@ -271,6 +316,9 @@ export default function AnnouncementsPage() {
     try {
       const client = await supabase;
 
+      // Sync is_published with status field for mobile app compatibility
+      const isPublished = formData.status === 'published';
+
       const payload = {
         title: formData.title,
         content: formData.content,
@@ -278,12 +326,20 @@ export default function AnnouncementsPage() {
         category_id: formData.category_id,
         featured_image_url: formData.featured_image_url || null,
         author: formData.author,
-        is_published: formData.is_published,
+        is_published: isPublished,
         is_featured: formData.is_featured,
         priority: formData.priority,
-        published_at: formData.is_published ? new Date().toISOString() : null,
+        status: formData.status,
+        scheduled_publish_at: formData.scheduled_publish_at ? new Date(formData.scheduled_publish_at).toISOString() : null,
+        expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : null,
+        auto_archive: formData.auto_archive,
+        published_at: isPublished ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
       };
+
+      // Debug: Log the content being saved
+      console.log('Saving announcement with content length:', formData.content?.length || 0);
+      console.log('Content preview:', formData.content?.substring(0, 100));
 
       if (editingAnnouncement) {
         const { error } = await client
@@ -334,20 +390,37 @@ export default function AnnouncementsPage() {
   async function handleTogglePublish(announcementId: string, currentStatus: boolean) {
     try {
       const client = await supabase;
-      const { error } = await client
+      const newStatus = !currentStatus;
+      
+      console.log('Toggling publish:', { announcementId, currentStatus, newStatus });
+      
+      const updateData: any = { 
+        is_published: newStatus,
+        status: newStatus ? 'published' : 'draft'
+      };
+      
+      // Only update published_at when publishing (not when unpublishing, since it's NOT NULL)
+      if (newStatus) {
+        updateData.published_at = new Date().toISOString();
+      }
+      
+      const { data, error } = await client
         .from('announcements')
-        .update({ 
-          is_published: !currentStatus,
-          published_at: !currentStatus ? new Date().toISOString() : null
-        })
-        .eq('id', announcementId);
+        .update(updateData)
+        .eq('id', announcementId)
+        .select();
 
-      if (error) throw error;
-      toast.success(`Announcement ${!currentStatus ? 'published' : 'unpublished'}`);
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Update result:', data);
+      toast.success(`Announcement ${newStatus ? 'published' : 'unpublished'}`);
       fetchAnnouncements();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling publish:', error);
-      toast.error('Failed to update announcement');
+      toast.error(error.message || 'Failed to update announcement');
     }
   }
 
@@ -382,9 +455,7 @@ export default function AnnouncementsPage() {
     const matchesSearch = announcement.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          announcement.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = filterCategory === 'all' || announcement.category_id === filterCategory;
-    const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'published' && announcement.is_published) ||
-                         (filterStatus === 'draft' && !announcement.is_published);
+    const matchesStatus = filterStatus === 'all' || announcement.status === filterStatus;
     
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -569,11 +640,14 @@ export default function AnnouncementsPage() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
+              <option value="draft">📝 Draft</option>
+              <option value="scheduled">⏰ Scheduled</option>
+              <option value="published">✅ Published</option>
+              <option value="expired">⏱️ Expired</option>
+              <option value="archived">📦 Archived</option>
             </select>
           </div>
         </div>
@@ -636,22 +710,33 @@ export default function AnnouncementsPage() {
                               {announcement.category.icon} {announcement.category.name}
                             </span>
                           )}
-                          <span className={`px-3 py-1 rounded-full font-medium ${
-                            announcement.is_published 
-                              ? 'bg-green-100 text-green-700' 
-                              : 'bg-gray-100 dark:bg-gray-700 dark:bg-gray-700 text-gray-700'
-                          }`}>
-                            {announcement.is_published ? 'Published' : 'Draft'}
-                          </span>
-                          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-400 flex items-center gap-1">
+                          {(() => {
+                            const badge = getStatusBadge(announcement.status);
+                            return (
+                              <span className={`px-3 py-1 rounded-full font-medium ${badge.bg} ${badge.text}`}>
+                                {badge.emoji} {badge.label}
+                              </span>
+                            );
+                          })()}
+                          {announcement.status === 'scheduled' && announcement.scheduled_publish_at && (
+                            <span className="px-3 py-1 rounded-full font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                              🚀 Goes live in {getCountdown(announcement.scheduled_publish_at)}
+                            </span>
+                          )}
+                          {announcement.expires_at && new Date(announcement.expires_at) > new Date() && (
+                            <span className="px-3 py-1 rounded-full font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 flex items-center gap-1">
+                              ⏱️ Expires in {getCountdown(announcement.expires_at)}
+                            </span>
+                          )}
+                          <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
                             {new Date(announcement.published_at).toLocaleDateString()}
                           </span>
-                          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-400 flex items-center gap-1">
+                          <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                             <Eye className="w-4 h-4" />
                             {announcement.view_count} views
                           </span>
-                          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-400">
+                          <span className="text-gray-500 dark:text-gray-400">
                             Priority: {announcement.priority}
                           </span>
                         </div>
@@ -755,26 +840,27 @@ export default function AnnouncementsPage() {
                       value={formData.excerpt}
                       onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      rows={2}
-                      maxLength={200}
-                      placeholder="Brief summary for list view (max 200 characters)..."
+                      rows={4}
+                      maxLength={2000}
+                      placeholder="Brief summary for list view (max 2000 characters)..."
                       required
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mt-1">{formData.excerpt.length}/200 characters</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mt-1">{formData.excerpt.length}/2000 characters</p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Content *
                     </label>
-                    <div className="border border-gray-300 rounded-lg overflow-hidden">
-                      <QuillEditor
-                        value={formData.content}
-                        onChange={(value: string) => setFormData({ ...formData, content: value })}
-                        placeholder="Write your announcement content here..."
-                        onImageUpload={handleContentImageUpload}
-                      />
-                    </div>
+                    <textarea
+                      value={formData.content}
+                      onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                      placeholder="Write your announcement content here..."
+                      rows={15}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent font-mono text-sm"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">You can use plain text or HTML</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -860,6 +946,87 @@ export default function AnnouncementsPage() {
                     />
                   </div>
 
+                  {/* Scheduling Section */}
+                  <div className="border-2 border-dashed border-blue-200 dark:border-blue-800 rounded-lg p-6 bg-blue-50 dark:bg-blue-950/20">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100">⏰ Schedule & Timer</h4>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Status Dropdown */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Status
+                        </label>
+                        <select
+                          value={formData.status}
+                          onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="draft">📝 Draft - Not visible to users</option>
+                          <option value="scheduled">⏰ Scheduled - Publish automatically</option>
+                          <option value="published">✅ Published - Live now</option>
+                          <option value="expired">⏱️ Expired - No longer visible</option>
+                          <option value="archived">📦 Archived - Moved to archive</option>
+                        </select>
+                      </div>
+
+                      {/* Schedule Publish Date/Time */}
+                      {(formData.status === 'scheduled' || formData.status === 'published') && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {formData.status === 'scheduled' ? 'Schedule Publish Date & Time' : 'Publish Date & Time (Optional)'}
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={formData.scheduled_publish_at}
+                            onChange={(e) => setFormData({ ...formData, scheduled_publish_at: e.target.value })}
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            min={new Date().toISOString().slice(0, 16)}
+                          />
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {formData.status === 'scheduled' ? '🚀 Announcement will automatically go live at this time' : 'When this announcement was/will be published'}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Expiry Date/Time */}
+                      {(formData.status === 'scheduled' || formData.status === 'published') && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Expiry Date & Time (Optional)
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={formData.expires_at}
+                            onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            min={formData.scheduled_publish_at || new Date().toISOString().slice(0, 16)}
+                          />
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            ⏱️ Announcement will automatically stop showing after this time
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Auto-archive Toggle */}
+                      {formData.expires_at && (
+                        <label className="flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.auto_archive}
+                            onChange={(e) => setFormData({ ...formData, auto_archive: e.target.checked })}
+                            className="w-5 h-5 text-blue-500 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            📦 Auto-archive after expiry
+                          </span>
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex gap-6">
                     <label className="flex items-center cursor-pointer">
                       <input
@@ -868,7 +1035,7 @@ export default function AnnouncementsPage() {
                         onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
                         className="w-5 h-5 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
                       />
-                      <span className="ml-2 text-sm font-medium text-gray-700">Published</span>
+                      <span className="ml-2 text-sm font-medium text-gray-700">Published (Legacy)</span>
                     </label>
 
                     <label className="flex items-center cursor-pointer">
